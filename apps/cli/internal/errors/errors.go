@@ -43,4 +43,6 @@ const (
 	CodeNotFound   = "NOT_FOUND"
 	CodeInvalidArg = "INVALID_ARGUMENT"
 	CodeExternal   = "EXTERNAL_ERROR"
+	CodeConflict   = "CONFLICT"            // Resource already exists (UNIQUE violation)
+	CodeDependency = "DEPENDENCY_ERROR"    // Foreign key constraint violation
 )

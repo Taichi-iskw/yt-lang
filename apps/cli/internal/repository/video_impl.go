@@ -26,7 +26,7 @@ func (r *videoRepository) Create(ctx context.Context, video *model.Video) error 
 	sql := "INSERT INTO videos (id, channel_id, title, url, duration) VALUES ($1, $2, $3, $4, $5)"
 	_, err := r.pool.Exec(ctx, sql, video.ID, video.ChannelID, video.Title, video.URL, video.Duration)
 	if err != nil {
-		return apperrors.Wrap(err, apperrors.CodeInternal, "failed to create video")
+		return handlePostgreSQLError(err, "failed to create video")
 	}
 	return nil
 }
@@ -50,7 +50,7 @@ func (r *videoRepository) CreateBatch(ctx context.Context, videos []*model.Video
 
 	_, err := r.pool.CopyFrom(ctx, tableName, columnNames, copyFromSource)
 	if err != nil {
-		return apperrors.Wrap(err, apperrors.CodeInternal, "failed to create videos in batch using COPY FROM")
+		return handlePostgreSQLError(err, "failed to create videos in batch using COPY FROM")
 	}
 
 	return nil
@@ -67,7 +67,7 @@ func (r *videoRepository) GetByID(ctx context.Context, id string) (*model.Video,
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperrors.Wrap(err, apperrors.CodeNotFound, "video not found")
 		}
-		return nil, apperrors.Wrap(err, apperrors.CodeInternal, "failed to get video")
+		return nil, handlePostgreSQLError(err, "failed to get video")
 	}
 
 	return &video, nil
@@ -78,7 +78,7 @@ func (r *videoRepository) GetByChannelID(ctx context.Context, channelID string, 
 	sql := "SELECT id, channel_id, title, url, duration FROM videos WHERE channel_id = $1 ORDER BY id LIMIT $2 OFFSET $3"
 	rows, err := r.pool.Query(ctx, sql, channelID, limit, offset)
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeInternal, "failed to get videos by channel ID")
+		return nil, handlePostgreSQLError(err, "failed to get videos by channel ID")
 	}
 	defer rows.Close()
 
@@ -87,13 +87,13 @@ func (r *videoRepository) GetByChannelID(ctx context.Context, channelID string, 
 		var video model.Video
 		err := rows.Scan(&video.ID, &video.ChannelID, &video.Title, &video.URL, &video.Duration)
 		if err != nil {
-			return nil, apperrors.Wrap(err, apperrors.CodeInternal, "failed to scan video row")
+			return nil, handlePostgreSQLError(err, "failed to scan video row")
 		}
 		videos = append(videos, &video)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeInternal, "failed to iterate video rows")
+		return nil, handlePostgreSQLError(err, "failed to iterate video rows")
 	}
 
 	return videos, nil
@@ -104,7 +104,7 @@ func (r *videoRepository) Update(ctx context.Context, video *model.Video) error 
 	sql := "UPDATE videos SET channel_id = $2, title = $3, url = $4, duration = $5 WHERE id = $1"
 	_, err := r.pool.Exec(ctx, sql, video.ID, video.ChannelID, video.Title, video.URL, video.Duration)
 	if err != nil {
-		return apperrors.Wrap(err, apperrors.CodeInternal, "failed to update video")
+		return handlePostgreSQLError(err, "failed to update video")
 	}
 	return nil
 }
@@ -114,7 +114,7 @@ func (r *videoRepository) Delete(ctx context.Context, id string) error {
 	sql := "DELETE FROM videos WHERE id = $1"
 	_, err := r.pool.Exec(ctx, sql, id)
 	if err != nil {
-		return apperrors.Wrap(err, apperrors.CodeInternal, "failed to delete video")
+		return handlePostgreSQLError(err, "failed to delete video")
 	}
 	return nil
 }
@@ -124,7 +124,7 @@ func (r *videoRepository) List(ctx context.Context, limit, offset int) ([]*model
 	sql := "SELECT id, channel_id, title, url, duration FROM videos ORDER BY id LIMIT $1 OFFSET $2"
 	rows, err := r.pool.Query(ctx, sql, limit, offset)
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeInternal, "failed to list videos")
+		return nil, handlePostgreSQLError(err, "failed to list videos")
 	}
 	defer rows.Close()
 
@@ -133,13 +133,13 @@ func (r *videoRepository) List(ctx context.Context, limit, offset int) ([]*model
 		var video model.Video
 		err := rows.Scan(&video.ID, &video.ChannelID, &video.Title, &video.URL, &video.Duration)
 		if err != nil {
-			return nil, apperrors.Wrap(err, apperrors.CodeInternal, "failed to scan video row")
+			return nil, handlePostgreSQLError(err, "failed to scan video row")
 		}
 		videos = append(videos, &video)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeInternal, "failed to iterate video rows")
+		return nil, handlePostgreSQLError(err, "failed to iterate video rows")
 	}
 
 	return videos, nil

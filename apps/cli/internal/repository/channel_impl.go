@@ -37,7 +37,7 @@ func (r *channelRepository) Create(ctx context.Context, channel *model.Channel) 
 	sql := "INSERT INTO channels (id, name, url) VALUES ($1, $2, $3)"
 	_, err := r.pool.Exec(ctx, sql, channel.ID, channel.Name, channel.URL)
 	if err != nil {
-		return apperrors.Wrap(err, apperrors.CodeInternal, "failed to create channel")
+		return handlePostgreSQLError(err, "failed to create channel")
 	}
 	return nil
 }
@@ -81,7 +81,7 @@ func (r *channelRepository) Update(ctx context.Context, channel *model.Channel) 
 	sql := "UPDATE channels SET name = $2, url = $3 WHERE id = $1"
 	_, err := r.pool.Exec(ctx, sql, channel.ID, channel.Name, channel.URL)
 	if err != nil {
-		return apperrors.Wrap(err, apperrors.CodeInternal, "failed to update channel")
+		return handlePostgreSQLError(err, "failed to update channel")
 	}
 	return nil
 }
@@ -91,7 +91,7 @@ func (r *channelRepository) Delete(ctx context.Context, id string) error {
 	sql := "DELETE FROM channels WHERE id = $1"
 	_, err := r.pool.Exec(ctx, sql, id)
 	if err != nil {
-		return apperrors.Wrap(err, apperrors.CodeInternal, "failed to delete channel")
+		return handlePostgreSQLError(err, "failed to delete channel")
 	}
 	return nil
 }
@@ -101,7 +101,7 @@ func (r *channelRepository) List(ctx context.Context, limit, offset int) ([]*mod
 	sql := "SELECT id, name, url FROM channels ORDER BY id LIMIT $1 OFFSET $2"
 	rows, err := r.pool.Query(ctx, sql, limit, offset)
 	if err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeInternal, "failed to list channels")
+		return nil, handlePostgreSQLError(err, "failed to list channels")
 	}
 	defer rows.Close()
 
@@ -116,7 +116,7 @@ func (r *channelRepository) List(ctx context.Context, limit, offset int) ([]*mod
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, apperrors.Wrap(err, apperrors.CodeInternal, "failed to iterate channel rows")
+		return nil, handlePostgreSQLError(err, "failed to iterate channel rows")
 	}
 
 	return channels, nil
