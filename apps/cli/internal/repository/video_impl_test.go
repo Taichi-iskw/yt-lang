@@ -93,7 +93,7 @@ func TestVideoRepository_CreateBatch(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "successful batch creation with multiple inserts",
+			name: "successful batch creation with COPY FROM",
 			videos: []*model.Video{
 				{
 					ID:        "dQw4w9WgXcQ",
@@ -111,13 +111,11 @@ func TestVideoRepository_CreateBatch(t *testing.T) {
 				},
 			},
 			setup: func(mock pgxmock.PgxPoolIface) {
-				// Expect multiple INSERT calls for batch operation
-				mock.ExpectExec("INSERT INTO videos").
-					WithArgs("dQw4w9WgXcQ", "UC123456789", "Never Gonna Give You Up", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", 212).
-					WillReturnResult(pgxmock.NewResult("INSERT", 1))
-				mock.ExpectExec("INSERT INTO videos").
-					WithArgs("oHg5SJYRHA0", "UC123456789", "Never Gonna Let You Down", "https://www.youtube.com/watch?v=oHg5SJYRHA0", 233).
-					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				// Expect CopyFrom call for bulk insert
+				mock.ExpectCopyFrom(
+					[]string{"videos"}, // table identifier
+					[]string{"id", "channel_id", "title", "url", "duration"}, // columns
+				).WillReturnResult(2) // 2 rows inserted
 			},
 			wantErr: false,
 		},
@@ -130,7 +128,7 @@ func TestVideoRepository_CreateBatch(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "database error in batch",
+			name: "database error in COPY FROM",
 			videos: []*model.Video{
 				{
 					ID:        "dQw4w9WgXcQ",
@@ -141,9 +139,11 @@ func TestVideoRepository_CreateBatch(t *testing.T) {
 				},
 			},
 			setup: func(mock pgxmock.PgxPoolIface) {
-				mock.ExpectExec("INSERT INTO videos").
-					WithArgs("dQw4w9WgXcQ", "UC123456789", "Never Gonna Give You Up", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", 212).
-					WillReturnError(assert.AnError)
+				// Expect CopyFrom call that fails
+				mock.ExpectCopyFrom(
+					[]string{"videos"}, // table identifier
+					[]string{"id", "channel_id", "title", "url", "duration"}, // columns
+				).WillReturnError(assert.AnError)
 			},
 			wantErr: true,
 		},

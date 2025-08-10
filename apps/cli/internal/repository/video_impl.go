@@ -31,20 +31,26 @@ func (r *videoRepository) Create(ctx context.Context, video *model.Video) error 
 	return nil
 }
 
-// CreateBatch creates multiple video records using bulk insert
+// CreateBatch creates multiple video records using bulk insert (COPY FROM)
 func (r *videoRepository) CreateBatch(ctx context.Context, videos []*model.Video) error {
 	if len(videos) == 0 {
 		return nil
 	}
 
-	// Use multiple individual inserts for now
-	// TODO: Implement with COPY FROM for better performance in future iteration
-	sql := "INSERT INTO videos (id, channel_id, title, url, duration) VALUES ($1, $2, $3, $4, $5)"
-	for _, video := range videos {
-		_, err := r.pool.Exec(ctx, sql, video.ID, video.ChannelID, video.Title, video.URL, video.Duration)
-		if err != nil {
-			return apperrors.Wrap(err, apperrors.CodeInternal, "failed to create video in batch")
-		}
+	// Prepare data for COPY FROM
+	rows := make([][]any, len(videos))
+	for i, video := range videos {
+		rows[i] = []any{video.ID, video.ChannelID, video.Title, video.URL, video.Duration}
+	}
+
+	// Use COPY FROM for optimal bulk insert performance
+	tableName := pgx.Identifier{"videos"}
+	columnNames := []string{"id", "channel_id", "title", "url", "duration"}
+	copyFromSource := pgx.CopyFromRows(rows)
+
+	_, err := r.pool.CopyFrom(ctx, tableName, columnNames, copyFromSource)
+	if err != nil {
+		return apperrors.Wrap(err, apperrors.CodeInternal, "failed to create videos in batch using COPY FROM")
 	}
 
 	return nil
