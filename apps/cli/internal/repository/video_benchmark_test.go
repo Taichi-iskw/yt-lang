@@ -27,11 +27,11 @@ func BenchmarkVideoRepository_InsertMethods(b *testing.B) {
 
 	// Create repository
 	repo := NewVideoRepository(pool)
-	
+
 	// Create test channel first
 	channelRepo := NewChannelRepository(pool)
 	ctx := context.Background()
-	
+
 	channel := &model.Channel{
 		ID:   "UC_benchmark",
 		Name: "Benchmark Channel",
@@ -54,7 +54,7 @@ func BenchmarkVideoRepository_InsertMethods(b *testing.B) {
 				// Clean up before each iteration
 				cleanupVideos(b, pool, channel.ID)
 				b.StartTimer()
-				
+
 				// Benchmark COPY FROM
 				err := repo.CreateBatch(ctx, videos)
 				require.NoError(b, err)
@@ -68,7 +68,7 @@ func BenchmarkVideoRepository_InsertMethods(b *testing.B) {
 				// Clean up before each iteration
 				cleanupVideos(b, pool, channel.ID)
 				b.StartTimer()
-				
+
 				// Benchmark individual INSERT
 				for _, video := range videos {
 					err := repo.Create(ctx, video)
@@ -84,7 +84,7 @@ func BenchmarkVideoRepository_InsertMethods(b *testing.B) {
 				// Clean up before each iteration
 				cleanupVideos(b, pool, channel.ID)
 				b.StartTimer()
-				
+
 				// Benchmark transaction-based batch INSERT
 				err := createBatchWithTransaction(ctx, pool, videos)
 				require.NoError(b, err)
@@ -106,11 +106,11 @@ func BenchmarkVideoRepository_MemoryUsage(b *testing.B) {
 	repo := NewVideoRepository(pool)
 	channelRepo := NewChannelRepository(pool)
 	ctx := context.Background()
-	
+
 	// Create test channel
 	channel := &model.Channel{
 		ID:   "UC_memory_test",
-		Name: "Memory Test Channel", 
+		Name: "Memory Test Channel",
 		URL:  "https://www.youtube.com/channel/UC_memory_test",
 	}
 	err := channelRepo.Create(ctx, channel)
@@ -122,12 +122,12 @@ func BenchmarkVideoRepository_MemoryUsage(b *testing.B) {
 	b.Run("CopyFrom_MemoryAllocation", func(b *testing.B) {
 		b.ResetTimer()
 		b.ReportAllocs() // Report memory allocations
-		
+
 		for i := 0; i < b.N; i++ {
 			b.StopTimer()
 			cleanupVideos(b, pool, channel.ID)
 			b.StartTimer()
-			
+
 			err := repo.CreateBatch(ctx, videos)
 			require.NoError(b, err)
 		}
@@ -136,12 +136,12 @@ func BenchmarkVideoRepository_MemoryUsage(b *testing.B) {
 	b.Run("IndividualInsert_MemoryAllocation", func(b *testing.B) {
 		b.ResetTimer()
 		b.ReportAllocs() // Report memory allocations
-		
+
 		for i := 0; i < b.N; i++ {
 			b.StopTimer()
 			cleanupVideos(b, pool, channel.ID)
 			b.StartTimer()
-			
+
 			for _, video := range videos {
 				err := repo.Create(ctx, video)
 				require.NoError(b, err)
@@ -153,7 +153,7 @@ func BenchmarkVideoRepository_MemoryUsage(b *testing.B) {
 // generateTestVideos creates test video data for benchmarking
 func generateTestVideos(channelID string, count int) []*model.Video {
 	videos := make([]*model.Video, count)
-	
+
 	for i := 0; i < count; i++ {
 		videos[i] = &model.Video{
 			ID:        fmt.Sprintf("benchmark_video_%d", i),
@@ -163,7 +163,7 @@ func generateTestVideos(channelID string, count int) []*model.Video {
 			Duration:  180 + (i % 300), // Vary duration between 180-480 seconds
 		}
 	}
-	
+
 	return videos
 }
 
@@ -193,7 +193,7 @@ func setupBenchmarkDB(b *testing.B) Pool {
 	// Get host and port
 	host, err := postgresContainer.Host(ctx)
 	require.NoError(b, err)
-	
+
 	port, err := postgresContainer.MappedPort(ctx, "5432")
 	require.NoError(b, err)
 
@@ -207,7 +207,7 @@ func setupBenchmarkDB(b *testing.B) Pool {
 	// Create connection pool with optimized settings for benchmarking
 	config, err := pgxpool.ParseConfig(connStr)
 	require.NoError(b, err)
-	
+
 	// Optimize pool for benchmarking
 	config.MaxConns = 10
 	config.MinConns = 5
@@ -246,7 +246,7 @@ func createBatchWithTransaction(ctx context.Context, pool Pool, videos []*model.
 	defer tx.Rollback(ctx)
 
 	// Prepare statement for reuse
-	_, err = tx.Prepare(ctx, "insert_video", 
+	_, err = tx.Prepare(ctx, "insert_video",
 		"INSERT INTO videos (id, channel_id, title, url, duration) VALUES ($1, $2, $3, $4, $5)")
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)

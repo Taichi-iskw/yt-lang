@@ -15,13 +15,13 @@ import (
 
 // TestPostgreSQLErrorHandling tests specific PostgreSQL error scenarios
 func TestPostgreSQLErrorHandling(t *testing.T) {
-	// Setup real PostgreSQL using testcontainers  
+	// Setup real PostgreSQL using testcontainers
 	pool := setupTestDB(t)
 	defer teardownTestDB(pool)
 
 	channelRepo := NewChannelRepository(pool)
 	videoRepo := NewVideoRepository(pool)
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -33,7 +33,7 @@ func TestPostgreSQLErrorHandling(t *testing.T) {
 	}
 
 	video := &model.Video{
-		ID:        "ERROR_VIDEO_001", 
+		ID:        "ERROR_VIDEO_001",
 		ChannelID: channel.ID,
 		Title:     "Error Test Video",
 		URL:       "https://www.youtube.com/watch?v=ERROR_VIDEO_001",
@@ -48,7 +48,7 @@ func TestPostgreSQLErrorHandling(t *testing.T) {
 		// Try to create same channel again - should get UNIQUE violation
 		err = channelRepo.Create(ctx, channel)
 		require.Error(t, err)
-		
+
 		// Check if it's a PostgreSQL error
 		var pgErr *pgconn.PgError
 		if assert.ErrorAs(t, err, &pgErr) {
@@ -56,7 +56,7 @@ func TestPostgreSQLErrorHandling(t *testing.T) {
 			t.Logf("PostgreSQL Error Message: %s", pgErr.Message)
 			t.Logf("PostgreSQL Error Detail: %s", pgErr.Detail)
 			t.Logf("PostgreSQL Constraint Name: %s", pgErr.ConstraintName)
-			
+
 			// Should be UNIQUE_VIOLATION (23505)
 			assert.Equal(t, "23505", pgErr.Code)
 		}
@@ -66,7 +66,7 @@ func TestPostgreSQLErrorHandling(t *testing.T) {
 		// Try to create video with non-existent channel
 		invalidVideo := &model.Video{
 			ID:        "FK_ERROR_VIDEO",
-			ChannelID: "UC_NONEXISTENT",  // This channel doesn't exist
+			ChannelID: "UC_NONEXISTENT", // This channel doesn't exist
 			Title:     "FK Error Video",
 			URL:       "https://www.youtube.com/watch?v=FK_ERROR_VIDEO",
 			Duration:  200,
@@ -82,7 +82,7 @@ func TestPostgreSQLErrorHandling(t *testing.T) {
 			t.Logf("PostgreSQL Error Message: %s", pgErr.Message)
 			t.Logf("PostgreSQL Error Detail: %s", pgErr.Detail)
 			t.Logf("PostgreSQL Constraint Name: %s", pgErr.ConstraintName)
-			
+
 			// Should be FOREIGN_KEY_VIOLATION (23503)
 			assert.Equal(t, "23503", pgErr.Code)
 		}
@@ -102,7 +102,7 @@ func TestPostgreSQLErrorHandling(t *testing.T) {
 			t.Logf("PostgreSQL Error Code: %s", pgErr.Code)
 			t.Logf("PostgreSQL Error Message: %s", pgErr.Message)
 			t.Logf("PostgreSQL Constraint Name: %s", pgErr.ConstraintName)
-			
+
 			// Should be UNIQUE_VIOLATION (23505)
 			assert.Equal(t, "23505", pgErr.Code)
 		}
@@ -126,7 +126,7 @@ func TestPostgreSQLErrorHandling(t *testing.T) {
 			t.Logf("PostgreSQL Error Code: %s", pgErr.Code)
 			t.Logf("PostgreSQL Error Message: %s", pgErr.Message)
 			t.Logf("PostgreSQL Constraint Name: %s", pgErr.ConstraintName)
-			
+
 			// Should be UNIQUE_VIOLATION (23505) on URL
 			assert.Equal(t, "23505", pgErr.Code)
 			assert.Contains(t, pgErr.ConstraintName, "url") // URL constraint
@@ -137,7 +137,7 @@ func TestPostgreSQLErrorHandling(t *testing.T) {
 		// Try batch insert with foreign key violation
 		invalidVideos := []*model.Video{
 			{
-				ID:        "BATCH_ERROR_1", 
+				ID:        "BATCH_ERROR_1",
 				ChannelID: "UC_NONEXISTENT_BATCH",
 				Title:     "Batch Error 1",
 				URL:       "https://www.youtube.com/watch?v=BATCH_ERROR_1",
@@ -145,7 +145,7 @@ func TestPostgreSQLErrorHandling(t *testing.T) {
 			},
 			{
 				ID:        "BATCH_ERROR_2",
-				ChannelID: "UC_NONEXISTENT_BATCH", 
+				ChannelID: "UC_NONEXISTENT_BATCH",
 				Title:     "Batch Error 2",
 				URL:       "https://www.youtube.com/watch?v=BATCH_ERROR_2",
 				Duration:  200,
@@ -159,7 +159,7 @@ func TestPostgreSQLErrorHandling(t *testing.T) {
 		if assert.ErrorAs(t, err, &pgErr) {
 			t.Logf("Batch Insert Error Code: %s", pgErr.Code)
 			t.Logf("Batch Insert Error Message: %s", pgErr.Message)
-			
+
 			// COPY FROM should also catch foreign key violations
 			assert.Equal(t, "23503", pgErr.Code)
 		}

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Taichi-iskw/yt-lang/internal/model"
 	apperrors "github.com/Taichi-iskw/yt-lang/internal/errors"
+	"github.com/Taichi-iskw/yt-lang/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,7 +28,7 @@ func TestEnhancedErrorHandling(t *testing.T) {
 	// Test data
 	channel := &model.Channel{
 		ID:   "UC_ENHANCED_TEST",
-		Name: "Enhanced Error Test Channel", 
+		Name: "Enhanced Error Test Channel",
 		URL:  "https://www.youtube.com/channel/UC_ENHANCED_TEST",
 	}
 
@@ -134,7 +134,7 @@ func TestEnhancedErrorHandling(t *testing.T) {
 				ID:        "BATCH_FK_ERROR_1",
 				ChannelID: "UC_NONEXISTENT_BATCH",
 				Title:     "Batch FK Error 1",
-				URL:       "https://www.youtube.com/watch?v=BATCH_FK_ERROR_1", 
+				URL:       "https://www.youtube.com/watch?v=BATCH_FK_ERROR_1",
 				Duration:  180,
 			},
 		}
@@ -155,7 +155,7 @@ func TestEnhancedErrorHandling(t *testing.T) {
 			{
 				ID:        "BATCH_DUPLICATE",
 				ChannelID: channel.ID,
-				Title:     "Batch Duplicate 1", 
+				Title:     "Batch Duplicate 1",
 				URL:       "https://www.youtube.com/watch?v=BATCH_DUPLICATE_1",
 				Duration:  180,
 			},

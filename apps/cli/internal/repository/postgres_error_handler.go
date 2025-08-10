@@ -25,25 +25,25 @@ func handlePostgreSQLError(err error, operation string) *apperrors.AppError {
 	switch pgErr.Code {
 	case "23505": // UNIQUE_VIOLATION
 		return handleUniqueViolation(pgErr, operation)
-		
+
 	case "23503": // FOREIGN_KEY_VIOLATION
 		return handleForeignKeyViolation(pgErr, operation)
-		
+
 	case "23502": // NOT_NULL_VIOLATION
 		return apperrors.Wrap(err, apperrors.CodeInvalidArg, "required field is missing")
-		
+
 	case "23514": // CHECK_VIOLATION
 		return apperrors.Wrap(err, apperrors.CodeInvalidArg, "data violates check constraint")
-		
+
 	case "42P01": // UNDEFINED_TABLE
 		return apperrors.Wrap(err, apperrors.CodeInternal, "database schema error: table not found")
-		
+
 	case "42703": // UNDEFINED_COLUMN
 		return apperrors.Wrap(err, apperrors.CodeInternal, "database schema error: column not found")
-		
+
 	case "08000", "08003", "08006": // CONNECTION_EXCEPTION variants
 		return apperrors.Wrap(err, apperrors.CodeInternal, "database connection error")
-		
+
 	case "53300": // TOO_MANY_CONNECTIONS
 		return apperrors.Wrap(err, apperrors.CodeInternal, "database connection limit reached")
 
@@ -57,7 +57,7 @@ func handlePostgreSQLError(err error, operation string) *apperrors.AppError {
 // handleUniqueViolation provides specific error messages for different unique constraints
 func handleUniqueViolation(pgErr *pgconn.PgError, operation string) *apperrors.AppError {
 	constraintName := pgErr.ConstraintName
-	
+
 	// Provide user-friendly messages based on constraint
 	switch {
 	case strings.Contains(constraintName, "pkey"):
@@ -68,7 +68,7 @@ func handleUniqueViolation(pgErr *pgconn.PgError, operation string) *apperrors.A
 			return apperrors.Wrap(pgErr, apperrors.CodeConflict, "video with this ID already exists")
 		}
 		return apperrors.Wrap(pgErr, apperrors.CodeConflict, "resource with this ID already exists")
-		
+
 	case strings.Contains(constraintName, "url"):
 		// URL unique constraint
 		if strings.Contains(constraintName, "channels") {
@@ -77,25 +77,25 @@ func handleUniqueViolation(pgErr *pgconn.PgError, operation string) *apperrors.A
 			return apperrors.Wrap(pgErr, apperrors.CodeConflict, "video with this URL already exists")
 		}
 		return apperrors.Wrap(pgErr, apperrors.CodeConflict, "resource with this URL already exists")
-		
+
 	default:
 		// Generic unique violation
 		return apperrors.Wrap(pgErr, apperrors.CodeConflict, "resource already exists")
 	}
 }
 
-// handleForeignKeyViolation provides specific error messages for foreign key constraints  
+// handleForeignKeyViolation provides specific error messages for foreign key constraints
 func handleForeignKeyViolation(pgErr *pgconn.PgError, operation string) *apperrors.AppError {
 	constraintName := pgErr.ConstraintName
-	
+
 	// Provide user-friendly messages based on foreign key constraint
 	switch {
 	case strings.Contains(constraintName, "channel_id"):
 		return apperrors.Wrap(pgErr, apperrors.CodeDependency, "referenced channel does not exist")
-		
+
 	case strings.Contains(constraintName, "video_id"):
 		return apperrors.Wrap(pgErr, apperrors.CodeDependency, "referenced video does not exist")
-		
+
 	default:
 		// Generic foreign key violation
 		return apperrors.Wrap(pgErr, apperrors.CodeDependency, "referenced resource does not exist")

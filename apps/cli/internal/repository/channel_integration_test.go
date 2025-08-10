@@ -112,7 +112,7 @@ func setupTestDB(t *testing.T) Pool {
 	// Get host and port
 	host, err := postgresContainer.Host(ctx)
 	require.NoError(t, err)
-	
+
 	port, err := postgresContainer.MappedPort(ctx, "5432")
 	require.NoError(t, err)
 
@@ -142,7 +142,6 @@ func setupTestDB(t *testing.T) Pool {
 
 	return pool
 }
-
 
 // teardownTestDB cleans up the test database
 func teardownTestDB(pool Pool) {

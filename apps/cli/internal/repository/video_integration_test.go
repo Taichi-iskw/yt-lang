@@ -155,7 +155,7 @@ func setupTestDBForVideo(t *testing.T) Pool {
 	// Get host and port
 	host, err := postgresContainer.Host(ctx)
 	require.NoError(t, err)
-	
+
 	port, err := postgresContainer.MappedPort(ctx, "5432")
 	require.NoError(t, err)
 
@@ -185,4 +185,3 @@ func setupTestDBForVideo(t *testing.T) Pool {
 
 	return pool
 }
-
