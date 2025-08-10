@@ -11,6 +11,9 @@ type VideoRepository interface {
 	// Create creates a new video record
 	Create(ctx context.Context, video *model.Video) error
 
+	// CreateBatch creates multiple video records using bulk insert (COPY FROM)
+	CreateBatch(ctx context.Context, videos []*model.Video) error
+
 	// GetByID retrieves a video by its ID
 	GetByID(ctx context.Context, id string) (*model.Video, error)
 
