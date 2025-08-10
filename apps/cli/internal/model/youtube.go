@@ -23,7 +23,7 @@ type Transcription struct {
 	ID        int       `json:"id" db:"id"`
 	VideoID   string    `json:"video_id" db:"video_id"`
 	StartTime float64   `json:"start_time" db:"start_time"` // Start time in seconds
-	EndTime   float64   `json:"end_time" db:"end_time"`     // End time in seconds  
+	EndTime   float64   `json:"end_time" db:"end_time"`     // End time in seconds
 	Content   string    `json:"content" db:"content"`       // Text content for this time segment
 	Language  string    `json:"language" db:"language"`
 	Source    string    `json:"source" db:"source"`
