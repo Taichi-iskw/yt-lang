@@ -148,11 +148,41 @@ func NewListCommand(service translation.TranslationService) *cobra.Command {
 		Short: "List all translations for a transcription",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// TODO: Implement list command
-			cmd.Println("List command not yet implemented")
+			transcriptionID := args[0]
+
+			// Get flags
+			limit, _ := cmd.Flags().GetInt("limit")
+			offset, _ := cmd.Flags().GetInt("offset")
+
+			ctx := context.Background()
+			translations, err := service.ListTranslations(ctx, transcriptionID, limit, offset)
+			if err != nil {
+				return fmt.Errorf("failed to list translations: %w", err)
+			}
+
+			if len(translations) == 0 {
+				cmd.Println("No translations found for transcription", transcriptionID)
+				return nil
+			}
+
+			// Display translations
+			cmd.Printf("Translations for transcription %s:\n\n", transcriptionID)
+			for _, translation := range translations {
+				cmd.Printf("ID: %d\n", translation.ID)
+				cmd.Printf("Target Language: %s\n", translation.TargetLanguage)
+				cmd.Printf("Source: %s\n", translation.Source)
+				cmd.Printf("Created: %s\n", translation.CreatedAt.Format("2006-01-02 15:04:05"))
+				cmd.Printf("Content Preview: %s\n", truncateString(translation.Content, 100))
+				cmd.Println("---")
+			}
+
 			return nil
 		},
 	}
+
+	// Add flags
+	cmd.Flags().Int("limit", 10, "Maximum number of translations to list")
+	cmd.Flags().Int("offset", 0, "Number of translations to skip")
 
 	return cmd
 }
@@ -164,8 +194,30 @@ func NewDeleteCommand(service translation.TranslationService) *cobra.Command {
 		Short: "Delete a translation",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// TODO: Implement delete command
-			cmd.Println("Delete command not yet implemented")
+			translationID := args[0]
+
+			// Get flags
+			force, _ := cmd.Flags().GetBool("force")
+
+			// Confirmation prompt if not forced
+			if !force {
+				cmd.Printf("Are you sure you want to delete translation %s? (y/N): ", translationID)
+				var response string
+				fmt.Scanln(&response)
+
+				if response != "y" && response != "Y" && response != "yes" {
+					cmd.Println("Deletion cancelled")
+					return nil
+				}
+			}
+
+			ctx := context.Background()
+			err := service.DeleteTranslation(ctx, translationID)
+			if err != nil {
+				return fmt.Errorf("failed to delete translation: %w", err)
+			}
+
+			cmd.Printf("Translation %s deleted successfully\n", translationID)
 			return nil
 		},
 	}
@@ -174,4 +226,12 @@ func NewDeleteCommand(service translation.TranslationService) *cobra.Command {
 	cmd.Flags().Bool("force", false, "Force deletion without confirmation")
 
 	return cmd
+}
+
+// truncateString truncates a string to the specified length
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }

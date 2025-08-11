@@ -39,6 +39,25 @@ func (r *translationRepository) Create(ctx context.Context, translation *model.T
 	return nil
 }
 
+// Get retrieves a translation by ID
+func (r *translationRepository) Get(ctx context.Context, id int) (*model.Translation, error) {
+	query := `
+		SELECT id, transcription_id, target_language, content, source, created_at
+		FROM translations
+		WHERE id = $1`
+
+	var translation model.Translation
+	err := r.db.QueryRow(ctx, query, id).
+		Scan(&translation.ID, &translation.TranscriptionID, &translation.TargetLanguage,
+			&translation.Content, &translation.Source, &translation.CreatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &translation, nil
+}
+
 // GetByTranscriptionIDAndLanguage retrieves translation by transcription ID and target language
 func (r *translationRepository) GetByTranscriptionIDAndLanguage(ctx context.Context, transcriptionID int, targetLanguage string) (*model.Translation, error) {
 	query := `
@@ -76,6 +95,39 @@ func (r *translationRepository) CreateBatch(ctx context.Context, translations []
 func (r *translationRepository) GetByTranscriptionID(ctx context.Context, transcriptionID int) ([]*model.Translation, error) {
 	// TODO: implement
 	return []*model.Translation{}, nil
+}
+
+// ListByTranscriptionID retrieves translations for a transcription segment with pagination
+func (r *translationRepository) ListByTranscriptionID(ctx context.Context, transcriptionID int, limit, offset int) ([]*model.Translation, error) {
+	query := `
+		SELECT id, transcription_id, target_language, content, source, created_at
+		FROM translations
+		WHERE transcription_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3`
+
+	rows, err := r.db.Query(ctx, query, transcriptionID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var translations []*model.Translation
+	for rows.Next() {
+		var translation model.Translation
+		err := rows.Scan(&translation.ID, &translation.TranscriptionID, &translation.TargetLanguage,
+			&translation.Content, &translation.Source, &translation.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		translations = append(translations, &translation)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return translations, nil
 }
 
 // GetByVideoIDAndLanguage retrieves translations by video ID and language (placeholder implementation)

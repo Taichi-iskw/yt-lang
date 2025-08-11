@@ -8,6 +8,9 @@ import (
 
 // TranslationRepository defines operations for Translation persistence
 type TranslationRepository interface {
+	// Get retrieves a translation by ID
+	Get(ctx context.Context, id int) (*model.Translation, error)
+
 	// Create creates a new translation for a transcription segment
 	Create(ctx context.Context, translation *model.Translation) error
 
@@ -16,6 +19,9 @@ type TranslationRepository interface {
 
 	// GetByTranscriptionID retrieves all translations for a transcription segment
 	GetByTranscriptionID(ctx context.Context, transcriptionID int) ([]*model.Translation, error)
+
+	// ListByTranscriptionID retrieves translations for a transcription segment with pagination
+	ListByTranscriptionID(ctx context.Context, transcriptionID int, limit, offset int) ([]*model.Translation, error)
 
 	// GetByTranscriptionIDAndLanguage retrieves translation for specific target language
 	GetByTranscriptionIDAndLanguage(ctx context.Context, transcriptionID int, targetLanguage string) (*model.Translation, error)

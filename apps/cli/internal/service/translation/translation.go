@@ -3,6 +3,8 @@ package translation
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strconv"
 
 	"github.com/Taichi-iskw/yt-lang/internal/model"
 )
@@ -19,13 +21,18 @@ type TranscriptionRepository interface {
 
 // TranslationRepository interface for accessing translation data
 type TranslationRepository interface {
+	Get(ctx context.Context, id int) (*model.Translation, error)
 	Create(ctx context.Context, translation *model.Translation) error
+	ListByTranscriptionID(ctx context.Context, transcriptionID int, limit, offset int) ([]*model.Translation, error)
+	Delete(ctx context.Context, id int) error
 }
 
 // TranslationService defines the main translation service interface
 type TranslationService interface {
 	CreateTranslation(ctx context.Context, transcriptionID string, targetLang string) (*model.Translation, error)
 	GetTranslation(ctx context.Context, id string) (*model.Translation, []*TranslationSegment, error)
+	ListTranslations(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error)
+	DeleteTranslation(ctx context.Context, id string) error
 	GetPlamoService() PlamoService
 }
 
@@ -165,8 +172,54 @@ func joinSegments(segments []string) string {
 
 // GetTranslation retrieves a translation
 func (s *translationService) GetTranslation(ctx context.Context, id string) (*model.Translation, []*TranslationSegment, error) {
-	// TODO: implement
-	return nil, nil, errors.New("not implemented")
+	// Convert string ID to int
+	translationID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid translation ID: %w", err)
+	}
+
+	// Get translation from repository
+	translation, err := s.translationRepo.Get(ctx, translationID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get translation: %w", err)
+	}
+
+	// TODO: Get translation segments (for now return nil)
+	return translation, nil, nil
+}
+
+// ListTranslations retrieves translations for a transcription with pagination
+func (s *translationService) ListTranslations(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error) {
+	// Convert string ID to int
+	transcriptionIDInt, err := strconv.Atoi(transcriptionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid transcription ID: %w", err)
+	}
+
+	// Get translations from repository with pagination
+	translations, err := s.translationRepo.ListByTranscriptionID(ctx, transcriptionIDInt, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list translations: %w", err)
+	}
+
+	return translations, nil
+}
+
+// DeleteTranslation deletes a translation by ID
+func (s *translationService) DeleteTranslation(ctx context.Context, id string) error {
+	// Convert string ID to int
+	translationID, err := strconv.Atoi(id)
+	if err != nil {
+		return fmt.Errorf("invalid translation ID: %w", err)
+	}
+
+	// Delete translation from repository
+	err = s.translationRepo.Delete(ctx, translationID)
+	if err != nil {
+		return fmt.Errorf("failed to delete translation: %w", err)
+	}
+
+	return nil
 }
 
 // GetPlamoService returns the PLaMo service instance

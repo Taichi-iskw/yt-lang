@@ -16,6 +16,8 @@ import (
 type mockTranslationService struct {
 	CreateTranslationFunc func(ctx context.Context, transcriptionID string, targetLang string) (*model.Translation, error)
 	GetTranslationFunc    func(ctx context.Context, id string) (*model.Translation, []*translation.TranslationSegment, error)
+	ListTranslationsFunc  func(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error)
+	DeleteTranslationFunc func(ctx context.Context, id string) error
 }
 
 func (m *mockTranslationService) CreateTranslation(ctx context.Context, transcriptionID string, targetLang string) (*model.Translation, error) {
@@ -30,6 +32,20 @@ func (m *mockTranslationService) GetTranslation(ctx context.Context, id string) 
 		return m.GetTranslationFunc(ctx, id)
 	}
 	return nil, nil, nil
+}
+
+func (m *mockTranslationService) ListTranslations(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error) {
+	if m.ListTranslationsFunc != nil {
+		return m.ListTranslationsFunc(ctx, transcriptionID, limit, offset)
+	}
+	return []*model.Translation{}, nil
+}
+
+func (m *mockTranslationService) DeleteTranslation(ctx context.Context, id string) error {
+	if m.DeleteTranslationFunc != nil {
+		return m.DeleteTranslationFunc(ctx, id)
+	}
+	return nil
 }
 
 func (m *mockTranslationService) GetPlamoService() translation.PlamoService {

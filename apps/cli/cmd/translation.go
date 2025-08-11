@@ -113,6 +113,30 @@ func (m *mockTranscriptionRepo) Get(ctx context.Context, id string) (*model.Tran
 
 type mockTranslationRepo struct{}
 
+func (m *mockTranslationRepo) Get(ctx context.Context, id int) (*model.Translation, error) {
+	// Mock get translation
+	return &model.Translation{
+		ID:              id,
+		TranscriptionID: 1,
+		TargetLanguage:  "ja",
+		Content:         "Mock translation",
+		Source:          "plamo",
+	}, nil
+}
+
+func (m *mockTranslationRepo) ListByTranscriptionID(ctx context.Context, transcriptionID int, limit, offset int) ([]*model.Translation, error) {
+	// Mock list translations
+	return []*model.Translation{
+		{ID: 1, TranscriptionID: transcriptionID, TargetLanguage: "ja", Content: "Mock translation 1", Source: "plamo"},
+		{ID: 2, TranscriptionID: transcriptionID, TargetLanguage: "en", Content: "Mock translation 2", Source: "plamo"},
+	}, nil
+}
+
+func (m *mockTranslationRepo) Delete(ctx context.Context, id int) error {
+	// Mock successful deletion
+	return nil
+}
+
 func (m *mockTranslationRepo) Create(ctx context.Context, translation *model.Translation) error {
 	// Mock successful creation
 	translation.ID = 1
