@@ -257,4 +257,3 @@ func NewDeleteCmd() *cobra.Command {
 
 	return deleteCmd
 }
-

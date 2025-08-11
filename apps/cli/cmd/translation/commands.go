@@ -5,7 +5,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 // NewTranslationCommand creates the main translation command
 func NewTranslationCommand(service translation.TranslationService) *cobra.Command {
 	cmd := &cobra.Command{
@@ -22,7 +21,3 @@ func NewTranslationCommand(service translation.TranslationService) *cobra.Comman
 
 	return cmd
 }
-
-
-
-
