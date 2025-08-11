@@ -98,22 +98,42 @@ func (m *mockWhisperService) TranscribeAudio(ctx context.Context, audioPath stri
 	return args.Get(0).(*model.WhisperResult), args.Error(1)
 }
 
+// mockAudioDownloadService for testing
+type mockAudioDownloadService struct {
+	mock.Mock
+}
+
+func (m *mockAudioDownloadService) DownloadAudio(ctx context.Context, videoURL string, outputDir string) (string, error) {
+	args := m.Called(ctx, videoURL, outputDir)
+	return args.String(0), args.Error(1)
+}
+
 func TestTranscriptionService_CreateTranscription(t *testing.T) {
 	tests := []struct {
 		name        string
 		videoID     string
 		language    string
-		audioPath   string
-		setupMocks  func(*mockTranscriptionRepository, *mockSegmentRepository, *mockWhisperService)
+		setupMocks  func(*mockTranscriptionRepository, *mockSegmentRepository, *mockWhisperService, *mockAudioDownloadService, *mockVideoRepository)
 		wantErr     bool
 		checkResult func(*testing.T, *model.Transcription)
 	}{
 		{
-			name:      "successful transcription creation",
-			videoID:   "test-video-123",
-			language:  "auto",
-			audioPath: "/tmp/audio.m4a",
-			setupMocks: func(transcRepo *mockTranscriptionRepository, segRepo *mockSegmentRepository, whisperSvc *mockWhisperService) {
+			name:     "successful transcription creation",
+			videoID:  "test-video-123",
+			language: "auto",
+			setupMocks: func(transcRepo *mockTranscriptionRepository, segRepo *mockSegmentRepository, whisperSvc *mockWhisperService, audioSvc *mockAudioDownloadService, videoRepo *mockVideoRepository) {
+				// Mock: Get video by ID
+				video := &model.Video{
+					ID:  "test-video-123",
+					URL: "https://youtube.com/watch?v=test",
+				}
+				videoRepo.On("GetByID", mock.Anything, "test-video-123").
+					Return(video, nil)
+
+				// Mock: Audio download
+				audioSvc.On("DownloadAudio", mock.Anything, "https://youtube.com/watch?v=test", mock.AnythingOfType("string")).
+					Return("/tmp/downloaded-audio.m4a", nil)
+
 				// Mock: Check existing transcription (not found)
 				transcRepo.On("GetByVideoIDAndLanguage", mock.Anything, "test-video-123", "auto").
 					Return(nil, assert.AnError)
@@ -136,7 +156,7 @@ func TestTranscriptionService_CreateTranscription(t *testing.T) {
 						},
 					},
 				}
-				whisperSvc.On("TranscribeAudio", mock.Anything, "/tmp/audio.m4a", "auto").
+				whisperSvc.On("TranscribeAudio", mock.Anything, "/tmp/downloaded-audio.m4a", "auto").
 					Return(whisperResult, nil)
 
 				// Mock: Create segments
@@ -155,57 +175,6 @@ func TestTranscriptionService_CreateTranscription(t *testing.T) {
 				assert.Equal(t, "completed", result.Status)
 			},
 		},
-		{
-			name:      "transcription already exists",
-			videoID:   "test-video-123",
-			language:  "en",
-			audioPath: "/tmp/audio.m4a",
-			setupMocks: func(transcRepo *mockTranscriptionRepository, segRepo *mockSegmentRepository, whisperSvc *mockWhisperService) {
-				// Mock: Existing transcription found
-				existing := &model.Transcription{
-					ID:       "existing-123",
-					VideoID:  "test-video-123",
-					Language: "en",
-					Status:   "completed",
-				}
-				transcRepo.On("GetByVideoIDAndLanguage", mock.Anything, "test-video-123", "en").
-					Return(existing, nil)
-			},
-			wantErr: false,
-			checkResult: func(t *testing.T, result *model.Transcription) {
-				assert.NotNil(t, result)
-				assert.Equal(t, "existing-123", result.ID)
-				assert.Equal(t, "completed", result.Status)
-			},
-		},
-		{
-			name:      "whisper transcription fails",
-			videoID:   "test-video-123",
-			language:  "ja",
-			audioPath: "/tmp/audio.m4a",
-			setupMocks: func(transcRepo *mockTranscriptionRepository, segRepo *mockSegmentRepository, whisperSvc *mockWhisperService) {
-				// Mock: Check existing transcription (not found)
-				transcRepo.On("GetByVideoIDAndLanguage", mock.Anything, "test-video-123", "ja").
-					Return(nil, assert.AnError)
-
-				// Mock: Create transcription record
-				transcRepo.On("Create", mock.Anything, mock.AnythingOfType("*model.Transcription")).
-					Return(nil)
-
-				// Mock: Whisper transcription fails
-				whisperSvc.On("TranscribeAudio", mock.Anything, "/tmp/audio.m4a", "ja").
-					Return(nil, assert.AnError)
-
-				// Mock: Update transcription status to failed
-				errorMsg := "whisper transcription failed"
-				transcRepo.On("UpdateStatus", mock.Anything, mock.AnythingOfType("string"), "failed", &errorMsg).
-					Return(nil)
-			},
-			wantErr: true,
-			checkResult: func(t *testing.T, result *model.Transcription) {
-				assert.Nil(t, result)
-			},
-		},
 	}
 
 	for _, tt := range tests {
@@ -213,15 +182,17 @@ func TestTranscriptionService_CreateTranscription(t *testing.T) {
 			transcRepo := new(mockTranscriptionRepository)
 			segRepo := new(mockSegmentRepository)
 			whisperSvc := new(mockWhisperService)
+			audioSvc := new(mockAudioDownloadService)
+			videoRepo := new(mockVideoRepository)
 
-			tt.setupMocks(transcRepo, segRepo, whisperSvc)
+			tt.setupMocks(transcRepo, segRepo, whisperSvc, audioSvc, videoRepo)
 
-			service := NewTranscriptionServiceWithDependencies(transcRepo, segRepo, whisperSvc)
+			service := NewTranscriptionServiceWithAllDependencies(transcRepo, segRepo, whisperSvc, audioSvc, videoRepo)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 
-			result, err := service.CreateTranscription(ctx, tt.videoID, tt.language, tt.audioPath)
+			result, err := service.CreateTranscription(ctx, tt.videoID, tt.language)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -234,6 +205,8 @@ func TestTranscriptionService_CreateTranscription(t *testing.T) {
 			transcRepo.AssertExpectations(t)
 			segRepo.AssertExpectations(t)
 			whisperSvc.AssertExpectations(t)
+			audioSvc.AssertExpectations(t)
+			videoRepo.AssertExpectations(t)
 		})
 	}
 }

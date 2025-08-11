@@ -3,17 +3,19 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/Taichi-iskw/yt-lang/internal/errors"
 	"github.com/Taichi-iskw/yt-lang/internal/model"
 	"github.com/Taichi-iskw/yt-lang/internal/repository/transcription"
+	"github.com/Taichi-iskw/yt-lang/internal/repository/video"
 )
 
 // TranscriptionService defines operations for transcription management
 type TranscriptionService interface {
-	// CreateTranscription creates a new transcription for a video
-	CreateTranscription(ctx context.Context, videoID string, language string, audioPath string) (*model.Transcription, error)
+	// CreateTranscription creates a new transcription for a video by downloading its audio
+	CreateTranscription(ctx context.Context, videoID string, language string) (*model.Transcription, error)
 
 	// GetTranscription retrieves transcription and its segments by ID
 	GetTranscription(ctx context.Context, id string) (*model.Transcription, []*model.TranscriptionSegment, error)
@@ -30,12 +32,15 @@ type transcriptionService struct {
 	transcriptionRepo transcription.Repository
 	segmentRepo       transcription.SegmentRepository
 	whisperService    WhisperService
+	audioDownloadSvc  AudioDownloadService
+	videoRepo         video.Repository
 }
 
 // NewTranscriptionService creates a new TranscriptionService with default dependencies
 func NewTranscriptionService() TranscriptionService {
 	return &transcriptionService{
-		whisperService: NewWhisperService(),
+		whisperService:   NewWhisperService(),
+		audioDownloadSvc: NewAudioDownloadService(),
 	}
 }
 
@@ -48,8 +53,38 @@ func NewTranscriptionServiceWithDependencies(transcriptionRepo transcription.Rep
 	}
 }
 
-// CreateTranscription creates a new transcription for a video
-func (s *transcriptionService) CreateTranscription(ctx context.Context, videoID string, language string, audioPath string) (*model.Transcription, error) {
+// NewTranscriptionServiceWithAllDependencies creates a new TranscriptionService with all dependencies (for CLI)
+func NewTranscriptionServiceWithAllDependencies(transcriptionRepo transcription.Repository, segmentRepo transcription.SegmentRepository, whisperService WhisperService, audioDownloadSvc AudioDownloadService, videoRepo video.Repository) TranscriptionService {
+	return &transcriptionService{
+		transcriptionRepo: transcriptionRepo,
+		segmentRepo:       segmentRepo,
+		whisperService:    whisperService,
+		audioDownloadSvc:  audioDownloadSvc,
+		videoRepo:         videoRepo,
+	}
+}
+
+// CreateTranscription creates a new transcription for a video by downloading its audio
+func (s *transcriptionService) CreateTranscription(ctx context.Context, videoID string, language string) (*model.Transcription, error) {
+	// Get video information from database
+	video, err := s.videoRepo.GetByID(ctx, videoID)
+	if err != nil {
+		return nil, errors.Wrap(err, errors.CodeNotFound, "video not found")
+	}
+
+	// Create temporary directory for audio download
+	tempDir, err := os.MkdirTemp("", "yt-lang-audio-*")
+	if err != nil {
+		return nil, errors.Wrap(err, errors.CodeInternal, "failed to create temp directory")
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Download audio from video URL
+	audioPath, err := s.audioDownloadSvc.DownloadAudio(ctx, video.URL, tempDir)
+	if err != nil {
+		return nil, errors.Wrap(err, errors.CodeExternal, "failed to download audio")
+	}
+
 	// Check if transcription already exists
 	existing, err := s.transcriptionRepo.GetByVideoIDAndLanguage(ctx, videoID, language)
 	if err == nil {
