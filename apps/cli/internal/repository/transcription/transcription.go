@@ -6,26 +6,22 @@ import (
 	"github.com/Taichi-iskw/yt-lang/internal/model"
 )
 
-// TranscriptionRepository defines operations for Transcription persistence
-type TranscriptionRepository interface {
-	// Create creates a new transcription segment
+// Repository defines operations for Transcription persistence (Option B: Normalized)
+type Repository interface {
+	// Transcription metadata operations
 	Create(ctx context.Context, transcription *model.Transcription) error
-
-	// CreateBatch creates multiple transcription segments for a video
-	CreateBatch(ctx context.Context, transcriptions []*model.Transcription) error
-
-	// GetByVideoID retrieves all transcription segments for a video, ordered by start_time
+	GetByID(ctx context.Context, id string) (*model.Transcription, error)
 	GetByVideoID(ctx context.Context, videoID string) ([]*model.Transcription, error)
+	GetByVideoIDAndLanguage(ctx context.Context, videoID, language string) (*model.Transcription, error)
+	UpdateStatus(ctx context.Context, id string, status string, errorMessage *string) error
+	Delete(ctx context.Context, id string) error
+}
 
-	// GetByVideoIDAndLanguage retrieves transcription segments for a video in specific language
-	GetByVideoIDAndLanguage(ctx context.Context, videoID, language string) ([]*model.Transcription, error)
-
-	// GetByTimeRange retrieves transcription segments within a time range
-	GetByTimeRange(ctx context.Context, videoID string, startTime, endTime float64) ([]*model.Transcription, error)
-
-	// Delete deletes a transcription segment by ID
-	Delete(ctx context.Context, id int) error
-
-	// DeleteByVideoID deletes all transcription segments for a video
-	DeleteByVideoID(ctx context.Context, videoID string) error
+// SegmentRepository defines operations for TranscriptionSegment persistence
+type SegmentRepository interface {
+	// Segment operations
+	CreateBatch(ctx context.Context, segments []*model.TranscriptionSegment) error
+	GetByTranscriptionID(ctx context.Context, transcriptionID string) ([]*model.TranscriptionSegment, error)
+	GetByTimeRange(ctx context.Context, transcriptionID string, startTime, endTime string) ([]*model.TranscriptionSegment, error)
+	Delete(ctx context.Context, transcriptionID string) error
 }
