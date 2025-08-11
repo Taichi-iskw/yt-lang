@@ -37,6 +37,7 @@ var transcriptionCreateCmd = &cobra.Command{
 		language, _ := cmd.Flags().GetString("language")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		format, _ := cmd.Flags().GetString("format")
+		model, _ := cmd.Flags().GetString("model")
 
 		// Create service with timeout context
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
@@ -44,7 +45,7 @@ var transcriptionCreateCmd = &cobra.Command{
 
 		if dryRun {
 			// Dry-run mode: test transcription without saving to database
-			return runDryRunMode(ctx, videoID, language, format)
+			return runDryRunMode(ctx, videoID, language, format, model)
 		}
 
 		// Normal mode: full transcription with database save
@@ -67,7 +68,7 @@ var transcriptionCreateCmd = &cobra.Command{
 		videoRepo := video.NewRepository(dbPool)
 
 		// Create services
-		whisperService := service.NewWhisperService()
+		whisperService := service.NewWhisperServiceWithCmdRunner(service.NewCmdRunner(), model)
 		audioDownloadService := service.NewAudioDownloadService()
 		transcriptionService := service.NewTranscriptionServiceWithAllDependencies(
 			transcriptionRepo,
@@ -259,9 +260,9 @@ var transcriptionListCmd = &cobra.Command{
 
 // runDryRunMode runs transcription in dry-run mode (no database save)
 // This function directly uses services without repository layer
-func runDryRunMode(ctx context.Context, videoID, language, format string) error {
+func runDryRunMode(ctx context.Context, videoID, language, format, model string) error {
 	// Create services (no database needed)
-	whisperService := service.NewWhisperService()
+	whisperService := service.NewWhisperServiceWithCmdRunner(service.NewCmdRunner(), model)
 	audioDownloadService := service.NewAudioDownloadService()
 
 	fmt.Printf("🎵 Testing transcription for video %s (dry-run mode)...\n", videoID)
@@ -445,6 +446,7 @@ func init() {
 	transcriptionCreateCmd.Flags().String("language", "auto", "Language code for transcription (auto, en, ja, etc.)")
 	transcriptionCreateCmd.Flags().Bool("dry-run", false, "Test transcription without saving to database")
 	transcriptionCreateCmd.Flags().String("format", "text", "Output format for dry-run: text, json, srt")
+	transcriptionCreateCmd.Flags().String("model", "base", "Whisper model to use (tiny, base, small, medium, large)")
 
 	// Add format flag to get command
 	transcriptionGetCmd.Flags().String("format", "text", "Output format: text, json, srt")
