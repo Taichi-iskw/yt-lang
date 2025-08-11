@@ -7,16 +7,20 @@ import (
 
 	"github.com/Taichi-iskw/yt-lang/internal/errors"
 	"github.com/Taichi-iskw/yt-lang/internal/model"
+	"github.com/Taichi-iskw/yt-lang/internal/repository"
 )
 
 // YouTubeService is interface for YouTube operations
 type YouTubeService interface {
 	FetchChannelInfo(ctx context.Context, channelURL string) (*model.Channel, error)
+	SaveChannelInfo(ctx context.Context, channelURL string) (*model.Channel, error)
 }
 
 // youTubeService implements YouTubeService
 type youTubeService struct {
-	cmdRunner CmdRunner
+	cmdRunner   CmdRunner
+	channelRepo repository.ChannelRepository
+	videoRepo   repository.VideoRepository
 }
 
 // NewYouTubeService creates a new YouTubeService
@@ -28,6 +32,15 @@ func NewYouTubeService() YouTubeService {
 func NewYouTubeServiceWithCmdRunner(cmdRunner CmdRunner) YouTubeService {
 	return &youTubeService{
 		cmdRunner: cmdRunner,
+	}
+}
+
+// NewYouTubeServiceWithRepositories creates a new YouTubeService with custom repositories (for testing)
+func NewYouTubeServiceWithRepositories(cmdRunner CmdRunner, channelRepo repository.ChannelRepository, videoRepo repository.VideoRepository) YouTubeService {
+	return &youTubeService{
+		cmdRunner:   cmdRunner,
+		channelRepo: channelRepo,
+		videoRepo:   videoRepo,
 	}
 }
 
@@ -69,6 +82,30 @@ func (s *youTubeService) FetchChannelInfo(ctx context.Context, channelURL string
 		ID:   extractChannelID(ytInfo.ID),
 		Name: ytInfo.Channel,
 		URL:  ytInfo.ChannelURL,
+	}
+
+	return channel, nil
+}
+
+// SaveChannelInfo fetches channel information from YouTube URL and saves it to database
+func (s *youTubeService) SaveChannelInfo(ctx context.Context, channelURL string) (*model.Channel, error) {
+	// First, fetch channel info using existing method
+	channel, err := s.FetchChannelInfo(ctx, channelURL)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if channel already exists in database
+	existingChannel, err := s.channelRepo.GetByURL(ctx, channel.URL)
+	if err == nil {
+		// Channel already exists, return existing one
+		return existingChannel, nil
+	}
+
+	// Channel doesn't exist, create new one
+	err = s.channelRepo.Create(ctx, channel)
+	if err != nil {
+		return nil, errors.Wrap(err, errors.CodeInternal, "failed to save channel to database")
 	}
 
 	return channel, nil
