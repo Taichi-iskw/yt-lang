@@ -36,11 +36,11 @@ func NewRepository(pool Pool) Repository {
 // Create creates a new transcription record
 func (r *transcriptionRepository) Create(ctx context.Context, transcription *model.Transcription) error {
 	sql := `INSERT INTO transcriptions 
-		(id, video_id, language, status, created_at, completed_at, error_message, detected_language, total_duration) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+		(video_id, language, status, created_at, completed_at, error_message, detected_language, total_duration) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id`
 
-	_, err := r.pool.Exec(ctx, sql,
-		transcription.ID,
+	err := r.pool.QueryRow(ctx, sql,
 		transcription.VideoID,
 		transcription.Language,
 		transcription.Status,
@@ -49,7 +49,7 @@ func (r *transcriptionRepository) Create(ctx context.Context, transcription *mod
 		transcription.ErrorMessage,
 		transcription.DetectedLanguage,
 		transcription.TotalDuration,
-	)
+	).Scan(&transcription.ID)
 	if err != nil {
 		return common.HandlePostgreSQLError(err, "failed to create transcription")
 	}

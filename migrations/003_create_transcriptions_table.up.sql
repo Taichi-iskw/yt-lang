@@ -1,7 +1,7 @@
 -- Create transcriptions table for storing video transcription metadata (Option B: Normalized)
 CREATE TABLE IF NOT EXISTS transcriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    video_id UUID NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+    video_id VARCHAR(255) NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
     language VARCHAR(10) NOT NULL, -- Language code: 'ja', 'en', 'auto', etc.
     status VARCHAR(20) NOT NULL DEFAULT 'pending', -- Status: 'pending', 'processing', 'completed', 'failed', 'cancelled'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

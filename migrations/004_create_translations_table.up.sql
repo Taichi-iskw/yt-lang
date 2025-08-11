@@ -1,7 +1,7 @@
 -- Create translations table for storing translated subtitle segments
 CREATE TABLE IF NOT EXISTS translations (
     id SERIAL PRIMARY KEY,
-    transcription_id INTEGER NOT NULL,     -- Foreign key to transcriptions.id
+    transcription_id UUID NOT NULL,     -- Foreign key to transcriptions.id
     target_language VARCHAR(10) NOT NULL,  -- Target language code (e.g., 'ja', 'en')
     content TEXT NOT NULL,                 -- Translated text content for the same time segment
     source VARCHAR(50) NOT NULL DEFAULT 'plamo', -- Translation source: plamo, google, etc

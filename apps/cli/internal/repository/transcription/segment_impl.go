@@ -30,7 +30,6 @@ func (r *segmentRepository) CreateBatch(ctx context.Context, segments []*model.T
 	rows := make([][]interface{}, len(segments))
 	for i, segment := range segments {
 		rows[i] = []interface{}{
-			segment.ID,
 			segment.TranscriptionID,
 			segment.SegmentIndex,
 			segment.StartTime,
@@ -44,7 +43,7 @@ func (r *segmentRepository) CreateBatch(ctx context.Context, segments []*model.T
 	_, err := r.pool.CopyFrom(
 		ctx,
 		pgx.Identifier{"transcription_segments"},
-		[]string{"id", "transcription_id", "segment_index", "start_time", "end_time", "text", "confidence"},
+		[]string{"transcription_id", "segment_index", "start_time", "end_time", "text", "confidence"},
 		pgx.CopyFromRows(rows),
 	)
 	if err != nil {
@@ -56,7 +55,8 @@ func (r *segmentRepository) CreateBatch(ctx context.Context, segments []*model.T
 
 // GetByTranscriptionID retrieves all segments for a transcription, ordered by segment_index
 func (r *segmentRepository) GetByTranscriptionID(ctx context.Context, transcriptionID string) ([]*model.TranscriptionSegment, error) {
-	sql := `SELECT id, transcription_id, segment_index, start_time, end_time, text, confidence 
+	sql := `SELECT id, transcription_id, segment_index, 
+		start_time::text, end_time::text, text, confidence 
 		FROM transcription_segments 
 		WHERE transcription_id = $1 
 		ORDER BY segment_index`
@@ -90,7 +90,8 @@ func (r *segmentRepository) GetByTranscriptionID(ctx context.Context, transcript
 
 // GetByTimeRange retrieves segments within a time range
 func (r *segmentRepository) GetByTimeRange(ctx context.Context, transcriptionID string, startTime, endTime string) ([]*model.TranscriptionSegment, error) {
-	sql := `SELECT id, transcription_id, segment_index, start_time, end_time, text, confidence 
+	sql := `SELECT id, transcription_id, segment_index, 
+		start_time::text, end_time::text, text, confidence 
 		FROM transcription_segments 
 		WHERE transcription_id = $1 
 		AND start_time >= $2::interval 

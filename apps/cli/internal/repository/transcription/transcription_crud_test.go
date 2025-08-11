@@ -32,9 +32,9 @@ func TestTranscriptionRepository_Create(t *testing.T) {
 				TotalDuration:    nil,
 			},
 			setup: func(mock pgxmock.PgxPoolIface) {
-				mock.ExpectExec("INSERT INTO transcriptions").
-					WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
-					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				mock.ExpectQuery("INSERT INTO transcriptions").
+					WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+					WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow("generated-uuid"))
 			},
 			wantErr: false,
 		},
@@ -48,8 +48,8 @@ func TestTranscriptionRepository_Create(t *testing.T) {
 				CreatedAt: time.Now(),
 			},
 			setup: func(mock pgxmock.PgxPoolIface) {
-				mock.ExpectExec("INSERT INTO transcriptions").
-					WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+				mock.ExpectQuery("INSERT INTO transcriptions").
+					WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 					WillReturnError(assert.AnError)
 			},
 			wantErr: true,
@@ -71,6 +71,8 @@ func TestTranscriptionRepository_Create(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
+				// Verify that ID was populated by database
+				assert.NotEmpty(t, tt.transcription.ID)
 			}
 
 			require.NoError(t, mock.ExpectationsWereMet())

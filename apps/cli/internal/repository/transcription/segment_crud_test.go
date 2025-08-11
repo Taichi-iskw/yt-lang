@@ -42,7 +42,7 @@ func TestSegmentRepository_CreateBatch(t *testing.T) {
 			},
 			setup: func(mock pgxmock.PgxPoolIface) {
 				mock.ExpectCopyFrom(pgx.Identifier{"transcription_segments"},
-					[]string{"id", "transcription_id", "segment_index", "start_time", "end_time", "text", "confidence"}).
+					[]string{"transcription_id", "segment_index", "start_time", "end_time", "text", "confidence"}).
 					WillReturnResult(2)
 			},
 			wantErr: false,
@@ -70,7 +70,7 @@ func TestSegmentRepository_CreateBatch(t *testing.T) {
 			},
 			setup: func(mock pgxmock.PgxPoolIface) {
 				mock.ExpectCopyFrom(pgx.Identifier{"transcription_segments"},
-					[]string{"id", "transcription_id", "segment_index", "start_time", "end_time", "text", "confidence"}).
+					[]string{"transcription_id", "segment_index", "start_time", "end_time", "text", "confidence"}).
 					WillReturnError(assert.AnError)
 			},
 			wantErr: true,
