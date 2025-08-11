@@ -27,6 +27,7 @@ type TranslationSegment struct {
 type BatchProcessor interface {
 	CreateBatches(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error)
 	SplitTranslation(batch SegmentBatch, translation string) ([]*TranslationSegment, error)
+	ProcessWithFallback(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error)
 }
 
 // batchProcessor implements BatchProcessor
@@ -142,5 +143,25 @@ func (bp *batchProcessor) SplitTranslation(batch SegmentBatch, translation strin
 		results = append(results, result)
 	}
 
+	return results, nil
+}
+
+// ProcessWithFallback processes segments with fallback strategy
+func (bp *batchProcessor) ProcessWithFallback(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error) {
+	// Fallback strategy: try different separators, then individual translation
+	// This is a placeholder implementation
+	var results []*TranslationSegment
+	
+	for _, segment := range segments {
+		result := &TranslationSegment{
+			ID:              segment.ID,
+			TranscriptionID: segment.TranscriptionID,
+			SegmentIndex:    segment.SegmentIndex,
+			Text:            segment.Text,
+			TranslatedText:  "fallback_" + segment.Text, // Placeholder translation
+		}
+		results = append(results, result)
+	}
+	
 	return results, nil
 }

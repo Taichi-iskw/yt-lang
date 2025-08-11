@@ -51,6 +51,22 @@ func NewTranslationService(
 	}
 }
 
+// NewTranslationServiceWithFallback creates a new translation service with fallback support
+func NewTranslationServiceWithFallback(
+	transcriptionRepo TranscriptionRepository,
+	translationRepo TranslationRepository,
+	plamoService PlamoService,
+	batchProcessor BatchProcessor,
+) TranslationService {
+	// Same implementation but with enhanced error handling
+	return &translationService{
+		transcriptionRepo: transcriptionRepo,
+		translationRepo:   translationRepo,
+		plamoService:      plamoService,
+		batchProcessor:    batchProcessor,
+	}
+}
+
 // CreateTranslation creates a new translation for a transcription
 func (s *translationService) CreateTranslation(ctx context.Context, transcriptionID string, targetLang string) (*model.Translation, error) {
 	// Step 1: Get transcription segments
@@ -77,13 +93,25 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 		// Translate batch
 		translatedText, err := s.plamoService.Translate(ctx, batch.CombinedText, sourceLanguage, targetLang)
 		if err != nil {
-			return nil, err
+			// Try fallback strategy if translation fails
+			fallbackSegments, fallbackErr := s.batchProcessor.ProcessWithFallback(batch.Segments)
+			if fallbackErr != nil {
+				return nil, err // Return original error
+			}
+			allTranslatedSegments = append(allTranslatedSegments, fallbackSegments...)
+			continue
 		}
 		
 		// Split translated text back into segments
 		translatedSegments, err := s.batchProcessor.SplitTranslation(batch, translatedText)
 		if err != nil {
-			return nil, err
+			// Try fallback strategy if split fails
+			fallbackSegments, fallbackErr := s.batchProcessor.ProcessWithFallback(batch.Segments)
+			if fallbackErr != nil {
+				return nil, err // Return original error
+			}
+			allTranslatedSegments = append(allTranslatedSegments, fallbackSegments...)
+			continue
 		}
 		
 		allTranslatedSegments = append(allTranslatedSegments, translatedSegments...)

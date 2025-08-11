@@ -126,6 +126,11 @@ func TestTranslationService_CreateTranslation(t *testing.T) {
 				pr.RunFunc = func(ctx context.Context, name string, args ...string) ([]byte, error) {
 					return nil, errors.New("PLaMo service unavailable")
 				}
+				
+				// Fallback also fails
+				bp.ProcessWithFallbackFunc = func(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error) {
+					return nil, errors.New("fallback failed")
+				}
 			},
 			wantErr:    true,
 			errMessage: "PLaMo service unavailable",
@@ -177,8 +182,9 @@ func TestTranslationService_CreateTranslation(t *testing.T) {
 
 // Mock batch processor
 type mockBatchProcessor struct {
-	CreateBatchesFunc     func(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error)
-	SplitTranslationFunc  func(batch SegmentBatch, translation string) ([]*TranslationSegment, error)
+	CreateBatchesFunc        func(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error)
+	SplitTranslationFunc     func(batch SegmentBatch, translation string) ([]*TranslationSegment, error)
+	ProcessWithFallbackFunc  func(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error)
 }
 
 func (m *mockBatchProcessor) CreateBatches(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error) {
@@ -191,6 +197,13 @@ func (m *mockBatchProcessor) CreateBatches(segments []*model.TranscriptionSegmen
 func (m *mockBatchProcessor) SplitTranslation(batch SegmentBatch, translation string) ([]*TranslationSegment, error) {
 	if m.SplitTranslationFunc != nil {
 		return m.SplitTranslationFunc(batch, translation)
+	}
+	return nil, nil
+}
+
+func (m *mockBatchProcessor) ProcessWithFallback(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error) {
+	if m.ProcessWithFallbackFunc != nil {
+		return m.ProcessWithFallbackFunc(segments)
 	}
 	return nil, nil
 }
