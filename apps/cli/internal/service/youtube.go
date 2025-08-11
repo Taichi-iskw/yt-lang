@@ -14,6 +14,7 @@ import (
 type YouTubeService interface {
 	FetchChannelInfo(ctx context.Context, channelURL string) (*model.Channel, error)
 	SaveChannelInfo(ctx context.Context, channelURL string) (*model.Channel, error)
+	ListChannels(ctx context.Context, limit, offset int) ([]*model.Channel, error)
 }
 
 // youTubeService implements YouTubeService
@@ -109,6 +110,25 @@ func (s *youTubeService) SaveChannelInfo(ctx context.Context, channelURL string)
 	}
 
 	return channel, nil
+}
+
+// ListChannels retrieves all saved channels with pagination
+func (s *youTubeService) ListChannels(ctx context.Context, limit, offset int) ([]*model.Channel, error) {
+	// Validate pagination parameters
+	if limit <= 0 {
+		limit = 10 // Default limit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Fetch channels from repository
+	channels, err := s.channelRepo.List(ctx, limit, offset)
+	if err != nil {
+		return nil, errors.Wrap(err, errors.CodeInternal, "failed to list channels")
+	}
+
+	return channels, nil
 }
 
 // extractChannelID extracts channel ID from various formats

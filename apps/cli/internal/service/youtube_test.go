@@ -302,3 +302,126 @@ func TestYouTubeService_SaveChannelInfo(t *testing.T) {
 		})
 	}
 }
+
+func TestYouTubeService_ListChannels(t *testing.T) {
+	tests := []struct {
+		name             string
+		limit            int
+		offset           int
+		channelRepoSetup func(*mockChannelRepository)
+		wantChannels     []*model.Channel
+		wantError        bool
+		errorContains    string
+	}{
+		{
+			name:   "successful list channels",
+			limit:  10,
+			offset: 0,
+			channelRepoSetup: func(m *mockChannelRepository) {
+				channels := []*model.Channel{
+					{
+						ID:   "UC123456789",
+						Name: "Channel 1",
+						URL:  "https://www.youtube.com/@Channel1",
+					},
+					{
+						ID:   "UC987654321",
+						Name: "Channel 2",
+						URL:  "https://www.youtube.com/@Channel2",
+					},
+				}
+				m.On("List", mock.Anything, 10, 0).Return(channels, nil)
+			},
+			wantChannels: []*model.Channel{
+				{
+					ID:   "UC123456789",
+					Name: "Channel 1",
+					URL:  "https://www.youtube.com/@Channel1",
+				},
+				{
+					ID:   "UC987654321",
+					Name: "Channel 2",
+					URL:  "https://www.youtube.com/@Channel2",
+				},
+			},
+			wantError: false,
+		},
+		{
+			name:   "empty list",
+			limit:  10,
+			offset: 0,
+			channelRepoSetup: func(m *mockChannelRepository) {
+				m.On("List", mock.Anything, 10, 0).Return([]*model.Channel{}, nil)
+			},
+			wantChannels: []*model.Channel{},
+			wantError:    false,
+		},
+		{
+			name:   "repository error",
+			limit:  10,
+			offset: 0,
+			channelRepoSetup: func(m *mockChannelRepository) {
+				m.On("List", mock.Anything, 10, 0).Return([]*model.Channel(nil), assert.AnError)
+			},
+			wantChannels:  nil,
+			wantError:     true,
+			errorContains: "failed to list channels",
+		},
+		{
+			name:   "with pagination offset",
+			limit:  5,
+			offset: 10,
+			channelRepoSetup: func(m *mockChannelRepository) {
+				channels := []*model.Channel{
+					{
+						ID:   "UC111111111",
+						Name: "Channel 11",
+						URL:  "https://www.youtube.com/@Channel11",
+					},
+				}
+				m.On("List", mock.Anything, 5, 10).Return(channels, nil)
+			},
+			wantChannels: []*model.Channel{
+				{
+					ID:   "UC111111111",
+					Name: "Channel 11",
+					URL:  "https://www.youtube.com/@Channel11",
+				},
+			},
+			wantError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+
+			mockRunner := new(mockCmdRunner)
+			mockChannelRepo := new(mockChannelRepository)
+			mockVideoRepo := new(mockVideoRepository)
+
+			tt.channelRepoSetup(mockChannelRepo)
+
+			service := NewYouTubeServiceWithRepositories(mockRunner, mockChannelRepo, mockVideoRepo)
+			channels, err := service.ListChannels(ctx, tt.limit, tt.offset)
+
+			if tt.wantError {
+				require.Error(t, err)
+				assert.Nil(t, channels)
+				if tt.errorContains != "" {
+					assert.Contains(t, err.Error(), tt.errorContains)
+				}
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, len(tt.wantChannels), len(channels))
+				for i, want := range tt.wantChannels {
+					assert.Equal(t, want.ID, channels[i].ID)
+					assert.Equal(t, want.Name, channels[i].Name)
+					assert.Equal(t, want.URL, channels[i].URL)
+				}
+			}
+
+			mockChannelRepo.AssertExpectations(t)
+		})
+	}
+}
