@@ -1,30 +1,21 @@
--- Create transcriptions table for storing video subtitle segments
+-- Create transcriptions table for storing video transcription metadata (Option B: Normalized)
 CREATE TABLE IF NOT EXISTS transcriptions (
-    id SERIAL PRIMARY KEY,
-    video_id VARCHAR(255) NOT NULL,        -- Foreign key to videos.id
-    start_time DECIMAL(10,3) NOT NULL,     -- Start time in seconds (e.g., 12.345)
-    end_time DECIMAL(10,3) NOT NULL,       -- End time in seconds (e.g., 15.678)
-    content TEXT NOT NULL,                 -- Transcription text content for this segment
-    language VARCHAR(10) NOT NULL DEFAULT 'en', -- Language code (e.g., 'en', 'ja')
-    source VARCHAR(50) NOT NULL DEFAULT 'whisper', -- Source: whisper, youtube, etc
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(), -- Keep for audit/debugging
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    video_id UUID NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+    language VARCHAR(10) NOT NULL, -- Language code: 'ja', 'en', 'auto', etc.
+    status VARCHAR(20) NOT NULL DEFAULT 'pending', -- Status: 'pending', 'processing', 'completed', 'failed', 'cancelled'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    completed_at TIMESTAMP WITH TIME ZONE,
+    error_message TEXT,
     
-    -- Foreign key constraint
-    CONSTRAINT fk_transcriptions_video_id 
-        FOREIGN KEY (video_id) 
-        REFERENCES videos(id) 
-        ON DELETE CASCADE,
-        
-    -- Ensure start_time < end_time
-    CONSTRAINT check_time_order 
-        CHECK (start_time < end_time),
-        
-    -- Prevent negative times
-    CONSTRAINT check_positive_times
-        CHECK (start_time >= 0 AND end_time >= 0)
+    -- Whisper result metadata (minimal)
+    detected_language VARCHAR(10), -- Actual language detected by Whisper
+    total_duration INTERVAL,
+    
+    UNIQUE(video_id, language) -- Prevent duplicates
 );
 
 -- Essential indexes for performance
 CREATE INDEX IF NOT EXISTS idx_transcriptions_video_id ON transcriptions(video_id);
-CREATE INDEX IF NOT EXISTS idx_transcriptions_video_time ON transcriptions(video_id, start_time);
+CREATE INDEX IF NOT EXISTS idx_transcriptions_status ON transcriptions(status);
 CREATE INDEX IF NOT EXISTS idx_transcriptions_video_lang ON transcriptions(video_id, language);
