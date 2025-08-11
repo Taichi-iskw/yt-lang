@@ -85,7 +85,7 @@ var transcriptionCreateCmd = &cobra.Command{
 		// Create transcription
 		result, err := transcriptionService.CreateTranscription(ctx, videoID, language)
 		if err != nil {
-			return fmt.Errorf("failed to create transcription: %w", err)
+			return formatTranscriptionError(err, videoID)
 		}
 
 		fmt.Printf("✅ Transcription created successfully!\n")
@@ -280,7 +280,7 @@ func runDryRunMode(ctx context.Context, videoID, language, format, model string)
 	videoURL := fmt.Sprintf("https://www.youtube.com/watch?v=%s", videoID)
 	audioPath, err := audioDownloadService.DownloadAudio(ctx, videoURL, tmpDir)
 	if err != nil {
-		return fmt.Errorf("failed to download audio: %w", err)
+		return formatTranscriptionError(err, videoID)
 	}
 
 	fmt.Printf("✅ Audio downloaded: %s\n", audioPath)
@@ -289,7 +289,7 @@ func runDryRunMode(ctx context.Context, videoID, language, format, model string)
 	// Run transcription
 	whisperResult, err := whisperService.TranscribeAudio(ctx, audioPath, language)
 	if err != nil {
-		return fmt.Errorf("failed to transcribe audio: %w", err)
+		return formatTranscriptionError(err, videoID)
 	}
 
 	fmt.Printf("✅ Transcription completed!\n")
@@ -439,6 +439,37 @@ func formatSecondsToSRTTime(seconds float64) string {
 	milliseconds := int((seconds - float64(totalSeconds)) * 1000)
 
 	return fmt.Sprintf("%02d:%02d:%02d,%03d", hours, minutes, secs, milliseconds)
+}
+
+// formatTranscriptionError provides user-friendly error messages for transcription failures
+func formatTranscriptionError(err error, videoID string) error {
+	if err == nil {
+		return nil
+	}
+
+	errMsg := err.Error()
+	
+	// Check for specific error patterns and provide helpful messages
+	switch {
+	case strings.Contains(errMsg, "video is not available"):
+		return fmt.Errorf("❌ Video '%s' is not available. Please check:\n   • Video ID is correct\n   • Video is not private or deleted\n   • You have internet connection", videoID)
+	case strings.Contains(errMsg, "yt-dlp is not installed"):
+		return fmt.Errorf("❌ yt-dlp is required but not installed.\n   • Install: pip install yt-dlp\n   • Or visit: https://github.com/yt-dlp/yt-dlp")
+	case strings.Contains(errMsg, "Whisper is not installed"):
+		return fmt.Errorf("❌ Whisper is required but not installed.\n   • Install: pip install openai-whisper\n   • Or visit: https://github.com/openai/whisper")
+	case strings.Contains(errMsg, "insufficient memory"):
+		return fmt.Errorf("❌ Not enough memory for transcription.\n   • Try using a smaller model: --model tiny or --model base\n   • Close other applications to free memory")
+	case strings.Contains(errMsg, "network connection error"):
+		return fmt.Errorf("❌ Network connection failed.\n   • Check your internet connection\n   • Verify firewall/proxy settings")
+	case strings.Contains(errMsg, "rate limited"):
+		return fmt.Errorf("❌ YouTube rate limit reached.\n   • Wait a few minutes and try again\n   • Consider using a VPN if the issue persists")
+	case strings.Contains(errMsg, "unsupported model"):
+		return fmt.Errorf("❌ Invalid Whisper model specified.\n   • Available models: tiny, base, small, medium, large\n   • Recommended: base (balanced) or large (high quality)")
+	case strings.Contains(errMsg, "unsupported language"):
+		return fmt.Errorf("❌ Invalid language code specified.\n   • Use language codes like: en, ja, es, fr, de\n   • Or use 'auto' for automatic detection")
+	default:
+		return fmt.Errorf("❌ Transcription failed for video '%s':\n   %s", videoID, errMsg)
+	}
 }
 
 func init() {

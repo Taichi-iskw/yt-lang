@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -92,7 +93,7 @@ func (s *whisperService) TranscribeAudio(ctx context.Context, audioPath string, 
 	// Execute whisper command
 	_, err := s.cmdRunner.Run(ctx, "whisper", args...)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.CodeExternal, "whisper execution failed")
+		return nil, errors.Wrap(err, errors.CodeExternal, s.formatWhisperError(err, audioPath, language))
 	}
 
 	// Read the output JSON file
@@ -112,4 +113,35 @@ func (s *whisperService) TranscribeAudio(ctx context.Context, audioPath string, 
 	}
 
 	return &result, nil
+}
+
+// formatWhisperError provides user-friendly error messages for Whisper failures  
+func (s *whisperService) formatWhisperError(err error, audioPath, language string) string {
+	errMsg := err.Error()
+	
+	// Check for common Whisper error patterns
+	switch {
+	case strings.Contains(errMsg, "No such file or directory") && strings.Contains(errMsg, "whisper"):
+		return "Whisper is not installed. Please install OpenAI Whisper: pip install openai-whisper"
+	case strings.Contains(errMsg, "No module named"):
+		return "Whisper dependencies missing. Please reinstall: pip install --upgrade openai-whisper"
+	case strings.Contains(errMsg, "CUDA"):
+		return "GPU/CUDA error detected. Whisper will fallback to CPU processing (this may be slower)"
+	case strings.Contains(errMsg, "not enough memory") || strings.Contains(errMsg, "OutOfMemoryError"):
+		return fmt.Sprintf("insufficient memory for model '%s'. Try using a smaller model (tiny, base, small)", s.model)
+	case strings.Contains(errMsg, "Invalid language"):
+		return fmt.Sprintf("unsupported language '%s'. Use language codes like 'en', 'ja', 'es' or 'auto'", language)
+	case strings.Contains(errMsg, "Invalid model"):
+		return fmt.Sprintf("unsupported model '%s'. Available models: tiny, base, small, medium, large", s.model)
+	case strings.Contains(errMsg, "Could not load model"):
+		return fmt.Sprintf("failed to load Whisper model '%s'. The model may need to be downloaded on first use", s.model)
+	case strings.Contains(errMsg, "File not found") || strings.Contains(errMsg, "No such file"):
+		return fmt.Sprintf("audio file not found: %s", filepath.Base(audioPath))
+	case strings.Contains(errMsg, "Unsupported format") || strings.Contains(errMsg, "format not supported"):
+		return fmt.Sprintf("unsupported audio format: %s", filepath.Ext(audioPath))
+	case strings.Contains(errMsg, "exit status 2"):
+		return fmt.Sprintf("Whisper processing failed. This may be due to corrupted audio or unsupported format (%s)", filepath.Ext(audioPath))
+	default:
+		return fmt.Sprintf("transcription failed with model '%s' - %s", s.model, errMsg)
+	}
 }

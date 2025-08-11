@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Taichi-iskw/yt-lang/internal/errors"
 )
@@ -61,7 +62,7 @@ func (s *audioDownloadService) DownloadAudio(ctx context.Context, videoURL strin
 	// Execute yt-dlp command
 	_, err := s.cmdRunner.Run(ctx, "yt-dlp", args...)
 	if err != nil {
-		return "", errors.Wrap(err, errors.CodeExternal, "yt-dlp audio download failed")
+		return "", errors.Wrap(err, errors.CodeExternal, s.formatYtDlpError(err, videoURL))
 	}
 
 	// Find the downloaded audio file
@@ -113,4 +114,50 @@ func (s *audioDownloadService) findDownloadedAudio(outputDir string) (string, er
 	// Return the first audio file found
 	// In a more sophisticated implementation, we could return the most recent one
 	return audioFiles[0], nil
+}
+
+// formatYtDlpError provides user-friendly error messages for yt-dlp failures
+func (s *audioDownloadService) formatYtDlpError(err error, videoURL string) string {
+	errMsg := err.Error()
+	
+	// Check for common yt-dlp error patterns
+	switch {
+	case strings.Contains(errMsg, "Video unavailable"):
+		return "video is not available (may be private, deleted, or region-blocked)"
+	case strings.Contains(errMsg, "Private video"):
+		return "video is private and cannot be downloaded"
+	case strings.Contains(errMsg, "Video removed"):
+		return "video has been removed by the uploader"
+	case strings.Contains(errMsg, "This video is not available"):
+		return "video is not available (check the video URL)"
+	case strings.Contains(errMsg, "No such file or directory") && strings.Contains(errMsg, "yt-dlp"):
+		return "yt-dlp is not installed or not found in PATH. Please install yt-dlp"
+	case strings.Contains(errMsg, "network"):
+		return "network connection error - please check your internet connection"
+	case strings.Contains(errMsg, "HTTP Error 404"):
+		return "video not found - please check the video ID"
+	case strings.Contains(errMsg, "403"):
+		return "access denied - video may be region-blocked or require login"
+	case strings.Contains(errMsg, "429"):
+		return "rate limited by YouTube - please try again later"
+	default:
+		// Extract video ID from URL for better error context
+		videoID := extractVideoIDFromURL(videoURL)
+		if videoID != "" {
+			return fmt.Sprintf("failed to download audio from video '%s' - %s", videoID, errMsg)
+		}
+		return fmt.Sprintf("audio download failed - %s", errMsg)
+	}
+}
+
+// extractVideoIDFromURL extracts video ID from YouTube URL
+func extractVideoIDFromURL(url string) string {
+	if strings.Contains(url, "watch?v=") {
+		parts := strings.Split(url, "watch?v=")
+		if len(parts) > 1 {
+			videoID := strings.Split(parts[1], "&")[0]
+			return videoID
+		}
+	}
+	return ""
 }
