@@ -82,8 +82,9 @@ func (s *audioDownloadService) findDownloadedAudio(outputDir string) (string, er
 	}
 
 	// Look for audio files (common extensions from yt-dlp)
-	audioExtensions := []string{".m4a", ".mp3", ".webm", ".ogg", ".wav"}
+	audioExtensions := []string{".m4a", ".mp3", ".webm", ".ogg", ".wav", ".opus"}
 	var audioFiles []string
+	var allFiles []string
 
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -91,6 +92,8 @@ func (s *audioDownloadService) findDownloadedAudio(outputDir string) (string, er
 		}
 
 		name := entry.Name()
+		allFiles = append(allFiles, name)
+
 		for _, ext := range audioExtensions {
 			if filepath.Ext(name) == ext {
 				audioFiles = append(audioFiles, filepath.Join(outputDir, name))
@@ -100,7 +103,11 @@ func (s *audioDownloadService) findDownloadedAudio(outputDir string) (string, er
 	}
 
 	if len(audioFiles) == 0 {
-		return "", fmt.Errorf("no audio files found in output directory")
+		if len(allFiles) == 0 {
+			return "", fmt.Errorf("no files found in output directory - audio download may have failed")
+		}
+		return "", fmt.Errorf("no audio files found. Downloaded files: %v. Supported formats: %v",
+			allFiles, audioExtensions)
 	}
 
 	// Return the first audio file found

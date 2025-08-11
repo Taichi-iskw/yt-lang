@@ -79,10 +79,14 @@ func (s *whisperService) TranscribeAudio(ctx context.Context, audioPath string, 
 	args := []string{
 		audioPath,
 		"--model", s.model,
-		"--language", language,
 		"--output_format", "json",
 		"--output_dir", tempDir,
 		"--temperature", "0",
+	}
+
+	// Add language parameter only if not auto-detection
+	if language != "" && language != "auto" {
+		args = append(args, "--language", language)
 	}
 
 	// Execute whisper command

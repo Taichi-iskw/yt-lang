@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -32,13 +33,21 @@ var transcriptionCreateCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		videoID := args[0]
 
-		// Get language flag
+		// Get flags
 		language, _ := cmd.Flags().GetString("language")
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		format, _ := cmd.Flags().GetString("format")
 
 		// Create service with timeout context
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer cancel()
 
+		if dryRun {
+			// Dry-run mode: test transcription without saving to database
+			return runDryRunMode(ctx, videoID, language, format)
+		}
+
+		// Normal mode: full transcription with database save
 		// Load configuration
 		cfg, err := config.NewConfig()
 		if err != nil {
@@ -248,6 +257,74 @@ var transcriptionListCmd = &cobra.Command{
 	},
 }
 
+// runDryRunMode runs transcription in dry-run mode (no database save)
+// This function directly uses services without repository layer
+func runDryRunMode(ctx context.Context, videoID, language, format string) error {
+	// Create services (no database needed)
+	whisperService := service.NewWhisperService()
+	audioDownloadService := service.NewAudioDownloadService()
+
+	fmt.Printf("🎵 Testing transcription for video %s (dry-run mode)...\n", videoID)
+	fmt.Printf("Language: %s\n", language)
+	fmt.Printf("Format: %s\n", format)
+	fmt.Printf("\n📥 Downloading audio...\n")
+
+	// Download audio to temporary directory
+	tmpDir, err := os.MkdirTemp("", "transcription-test-")
+	if err != nil {
+		return fmt.Errorf("failed to create temp directory: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	videoURL := fmt.Sprintf("https://www.youtube.com/watch?v=%s", videoID)
+	audioPath, err := audioDownloadService.DownloadAudio(ctx, videoURL, tmpDir)
+	if err != nil {
+		return fmt.Errorf("failed to download audio: %w", err)
+	}
+
+	fmt.Printf("✅ Audio downloaded: %s\n", audioPath)
+	fmt.Printf("\n🎙️ Running transcription...\n")
+
+	// Run transcription
+	whisperResult, err := whisperService.TranscribeAudio(ctx, audioPath, language)
+	if err != nil {
+		return fmt.Errorf("failed to transcribe audio: %w", err)
+	}
+
+	fmt.Printf("✅ Transcription completed!\n")
+	fmt.Printf("Detected Language: %s\n", whisperResult.Language)
+	fmt.Printf("Total segments: %d\n", len(whisperResult.Segments))
+	fmt.Printf("ℹ️  Results not saved to database (dry-run mode)\n")
+	fmt.Println()
+
+	// Format and output results
+	switch format {
+	case "json":
+		jsonData, err := json.MarshalIndent(whisperResult, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to format JSON: %w", err)
+		}
+		fmt.Println(string(jsonData))
+
+	case "srt":
+		fmt.Print(formatWhisperResultAsSRT(whisperResult))
+
+	case "text":
+		fmt.Printf("Full Text:\n%s\n\n", whisperResult.Text)
+		fmt.Printf("--- Segments (%d) ---\n", len(whisperResult.Segments))
+		for _, segment := range whisperResult.Segments {
+			startTime := formatSecondsToTime(segment.Start)
+			endTime := formatSecondsToTime(segment.End)
+			fmt.Printf("[%s -> %s] %s\n", startTime, endTime, segment.Text)
+		}
+
+	default:
+		return fmt.Errorf("unsupported format: %s (supported: text, json, srt)", format)
+	}
+
+	return nil
+}
+
 // transcriptionDeleteCmd deletes a transcription
 var transcriptionDeleteCmd = &cobra.Command{
 	Use:   "delete [TRANSCRIPTION_ID]",
@@ -325,9 +402,49 @@ func formatTimeForSRT(intervalTime string) string {
 	return strings.Replace(intervalTime, ".", ",", 1)
 }
 
+// formatWhisperResultAsSRT formats WhisperResult as SRT subtitle format
+func formatWhisperResultAsSRT(result *model.WhisperResult) string {
+	var output strings.Builder
+
+	for i, segment := range result.Segments {
+		// SRT format: sequence number, timestamp, text, blank line
+		output.WriteString(fmt.Sprintf("%d\n", i+1))
+		output.WriteString(fmt.Sprintf("%s --> %s\n",
+			formatSecondsToSRTTime(segment.Start),
+			formatSecondsToSRTTime(segment.End)))
+		output.WriteString(fmt.Sprintf("%s\n\n", segment.Text))
+	}
+
+	return output.String()
+}
+
+// formatSecondsToTime converts seconds (float64) to HH:MM:SS format
+func formatSecondsToTime(seconds float64) string {
+	totalSeconds := int(seconds)
+	hours := totalSeconds / 3600
+	minutes := (totalSeconds % 3600) / 60
+	secs := totalSeconds % 60
+	milliseconds := int((seconds - float64(totalSeconds)) * 1000)
+
+	return fmt.Sprintf("%02d:%02d:%02d.%03d", hours, minutes, secs, milliseconds)
+}
+
+// formatSecondsToSRTTime converts seconds (float64) to SRT timestamp format
+func formatSecondsToSRTTime(seconds float64) string {
+	totalSeconds := int(seconds)
+	hours := totalSeconds / 3600
+	minutes := (totalSeconds % 3600) / 60
+	secs := totalSeconds % 60
+	milliseconds := int((seconds - float64(totalSeconds)) * 1000)
+
+	return fmt.Sprintf("%02d:%02d:%02d,%03d", hours, minutes, secs, milliseconds)
+}
+
 func init() {
-	// Add language flag to create command
+	// Add flags to create command
 	transcriptionCreateCmd.Flags().String("language", "auto", "Language code for transcription (auto, en, ja, etc.)")
+	transcriptionCreateCmd.Flags().Bool("dry-run", false, "Test transcription without saving to database")
+	transcriptionCreateCmd.Flags().String("format", "text", "Output format for dry-run: text, json, srt")
 
 	// Add format flag to get command
 	transcriptionGetCmd.Flags().String("format", "text", "Output format: text, json, srt")
