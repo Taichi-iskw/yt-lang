@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"strconv"
+	"strings"
 
 	"github.com/Taichi-iskw/yt-lang/internal/model"
 )
@@ -143,8 +145,10 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 	}
 
 	// Step 5: Save translation to database
+	// Convert string transcription ID to numeric ID using hash
+	numericTranscriptionID := hashStringToInt(transcriptionID)
 	translation := &model.Translation{
-		TranscriptionID: 1, // TODO: Convert string ID to int
+		TranscriptionID: numericTranscriptionID,
 		TargetLanguage:  targetLang,
 		Content:         joinSegments(translatedContent),
 		Source:          "plamo",
@@ -184,8 +188,15 @@ func (s *translationService) GetTranslation(ctx context.Context, id string) (*mo
 		return nil, nil, fmt.Errorf("failed to get translation: %w", err)
 	}
 
-	// TODO: Get translation segments (for now return nil)
-	return translation, nil, nil
+	// Get segments to reconstruct translation segments
+	// First, we need to reverse-engineer the transcription ID from the hashed value
+	// For now, we'll return the translation segments by parsing the content
+	segments, err := s.parseTranslationSegments(translation.Content)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse translation segments: %w", err)
+	}
+
+	return translation, segments, nil
 }
 
 // ListTranslations retrieves translations for a transcription with pagination
@@ -225,4 +236,58 @@ func (s *translationService) DeleteTranslation(ctx context.Context, id string) e
 // GetPlamoService returns the PLaMo service instance
 func (s *translationService) GetPlamoService() PlamoService {
 	return s.plamoService
+}
+
+// hashStringToInt converts a string to a consistent integer using hash function
+// This is a temporary solution for handling string-to-int ID conversion
+func hashStringToInt(s string) int {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return int(h.Sum32())
+}
+
+// parseTranslationSegments parses translation content to create translation segments
+// This is a temporary implementation that splits content by sentences/lines
+func (s *translationService) parseTranslationSegments(content string) ([]*TranslationSegment, error) {
+	if content == "" {
+		return []*TranslationSegment{}, nil
+	}
+
+	// Simple parsing: split by periods and line breaks, ignoring empty segments
+	parts := splitByDelimiters(content, []string{".", "\n", "。"})
+
+	var segments []*TranslationSegment
+	segmentIndex := 0
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		segments = append(segments, &TranslationSegment{
+			SegmentIndex:   segmentIndex,
+			Text:           "", // Original text not available from translation alone
+			TranslatedText: part,
+		})
+		segmentIndex++
+	}
+
+	return segments, nil
+}
+
+// splitByDelimiters splits text by multiple delimiters
+func splitByDelimiters(text string, delimiters []string) []string {
+	parts := []string{text}
+
+	for _, delimiter := range delimiters {
+		var newParts []string
+		for _, part := range parts {
+			subParts := strings.Split(part, delimiter)
+			newParts = append(newParts, subParts...)
+		}
+		parts = newParts
+	}
+
+	return parts
 }

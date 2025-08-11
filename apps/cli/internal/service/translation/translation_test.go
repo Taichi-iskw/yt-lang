@@ -314,8 +314,8 @@ func TestTranslationService_GetTranslation(t *testing.T) {
 			} else {
 				assert.NotNil(t, translation)
 				assert.Equal(t, tt.expectedID, translation.ID)
-				// Segments are nil for now since we're not implementing segment retrieval yet
-				assert.Nil(t, segments)
+				// Now we implement segment retrieval, so segments should be available
+				assert.NotNil(t, segments)
 			}
 		})
 	}

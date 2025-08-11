@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/Taichi-iskw/yt-lang/internal/service/translation"
 	"github.com/spf13/cobra"
@@ -115,8 +116,33 @@ func NewGetCommand(service translation.TranslationService) *cobra.Command {
 				}
 				cmd.Println(string(output))
 			case "srt":
-				// TODO: Implement SRT format
-				cmd.Println("SRT format not yet implemented")
+				// Format as SRT subtitle file
+				if segments != nil && len(segments) > 0 {
+					for i, seg := range segments {
+						// SRT format: sequence number, timing, content, blank line
+						cmd.Printf("%d\n", i+1)
+						// Since we don't have timing info from parsed segments,
+						// use estimated timing based on segment index
+						startTime := formatSRTTime(i * 3) // 3 seconds per segment estimate
+						endTime := formatSRTTime((i + 1) * 3)
+						cmd.Printf("%s --> %s\n", startTime, endTime)
+						cmd.Printf("%s\n\n", seg.TranslatedText)
+					}
+				} else {
+					// Fallback: split content into lines for SRT format
+					lines := strings.Split(translation.Content, "\n")
+					for i, line := range lines {
+						line = strings.TrimSpace(line)
+						if line == "" {
+							continue
+						}
+						cmd.Printf("%d\n", i+1)
+						startTime := formatSRTTime(i * 3)
+						endTime := formatSRTTime((i + 1) * 3)
+						cmd.Printf("%s --> %s\n", startTime, endTime)
+						cmd.Printf("%s\n\n", line)
+					}
+				}
 			default: // text
 				cmd.Printf("Translation ID: %d\n", translation.ID)
 				cmd.Printf("Target Language: %s\n", translation.TargetLanguage)
