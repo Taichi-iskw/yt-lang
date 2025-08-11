@@ -63,18 +63,18 @@ func TestPlamoService_Translate(t *testing.T) {
 					return []byte(tt.want), nil
 				},
 			}
-			
+
 			service := NewPlamoService(mockCmdRunner)
-			
+
 			ctx := context.Background()
 			got, err := service.Translate(ctx, tt.text, tt.fromLang, tt.toLang)
-			
+
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Empty(t, got)
 				return
 			}
-			
+
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 		})

@@ -31,7 +31,7 @@ func (s *plamoService) Translate(ctx context.Context, text string, fromLang, toL
 	if strings.TrimSpace(text) == "" {
 		return "", errors.New("text cannot be empty")
 	}
-	
+
 	// Supported languages validation
 	supportedLangs := map[string]bool{
 		"en": true,
@@ -40,18 +40,18 @@ func (s *plamoService) Translate(ctx context.Context, text string, fromLang, toL
 	if !supportedLangs[fromLang] || !supportedLangs[toLang] {
 		return "", errors.New("unsupported language")
 	}
-	
+
 	// Execute PLaMo CLI command
 	args := []string{
 		"--from", fromLang,
 		"--to", toLang,
 		text,
 	}
-	
+
 	output, err := s.cmdRunner.Run(ctx, "plamo", args...)
 	if err != nil {
 		return "", errors.New("PLaMo CLI execution failed: " + err.Error())
 	}
-	
+
 	return strings.TrimSpace(string(output)), nil
 }

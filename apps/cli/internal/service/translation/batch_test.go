@@ -10,11 +10,11 @@ import (
 
 func TestBatchProcessor_CreateBatches(t *testing.T) {
 	tests := []struct {
-		name           string
-		segments       []*model.TranscriptionSegment
-		maxTokens      int
+		name            string
+		segments        []*model.TranscriptionSegment
+		maxTokens       int
 		expectedBatches int
-		wantErr        bool
+		wantErr         bool
 	}{
 		{
 			name: "single small batch",
@@ -24,7 +24,7 @@ func TestBatchProcessor_CreateBatches(t *testing.T) {
 			},
 			maxTokens:       1000,
 			expectedBatches: 1,
-			wantErr:        false,
+			wantErr:         false,
 		},
 		{
 			name: "multiple batches needed",
@@ -35,14 +35,14 @@ func TestBatchProcessor_CreateBatches(t *testing.T) {
 			},
 			maxTokens:       10, // Very small limit to force multiple batches
 			expectedBatches: 3,
-			wantErr:        false,
+			wantErr:         false,
 		},
 		{
-			name:           "empty segments",
-			segments:       []*model.TranscriptionSegment{},
-			maxTokens:      1000,
+			name:            "empty segments",
+			segments:        []*model.TranscriptionSegment{},
+			maxTokens:       1000,
 			expectedBatches: 0,
-			wantErr:        false,
+			wantErr:         false,
 		},
 		{
 			name: "invalid max tokens",
@@ -57,17 +57,17 @@ func TestBatchProcessor_CreateBatches(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			processor := NewBatchProcessor()
-			
+
 			batches, err := processor.CreateBatches(tt.segments, tt.maxTokens)
-			
+
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
-			
+
 			require.NoError(t, err)
 			assert.Len(t, batches, tt.expectedBatches)
-			
+
 			// Verify all segments are included
 			totalSegments := 0
 			for _, batch := range batches {
@@ -92,7 +92,7 @@ func TestBatchProcessor_SplitTranslation(t *testing.T) {
 					{ID: "1", Text: "Hello"},
 					{ID: "2", Text: "World"},
 				},
-				Separator: "__",
+				Separator:    "__",
 				CombinedText: "Hello__World",
 			},
 			translation: "こんにちは__世界",
@@ -105,7 +105,7 @@ func TestBatchProcessor_SplitTranslation(t *testing.T) {
 					{ID: "1", Text: "Hello"},
 					{ID: "2", Text: "World"},
 				},
-				Separator: "__",
+				Separator:    "__",
 				CombinedText: "Hello__World",
 			},
 			translation: "こんにちは世界", // Missing separator
@@ -116,14 +116,14 @@ func TestBatchProcessor_SplitTranslation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			processor := NewBatchProcessor()
-			
+
 			segments, err := processor.SplitTranslation(tt.batch, tt.translation)
-			
+
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
-			
+
 			require.NoError(t, err)
 			assert.Len(t, segments, len(tt.batch.Segments))
 		})

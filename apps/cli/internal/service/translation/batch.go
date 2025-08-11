@@ -58,30 +58,30 @@ func (bp *batchProcessor) CreateBatches(segments []*model.TranscriptionSegment, 
 	if maxTokens <= 0 {
 		return nil, errors.New("maxTokens must be positive")
 	}
-	
+
 	if len(segments) == 0 {
 		return []SegmentBatch{}, nil
 	}
-	
+
 	var batches []SegmentBatch
 	separator := bp.separators[0] // Use first separator "__"
-	
+
 	// Simple implementation: try to fit segments in batches
 	currentBatch := SegmentBatch{
 		Segments:  []*model.TranscriptionSegment{},
 		Separator: separator,
 	}
 	currentTokens := 0
-	
+
 	for _, segment := range segments {
 		segmentTokens := estimateTokenCount(segment.Text, "en") // Default to English
-		
+
 		// If adding this segment would exceed limit, start new batch
 		if currentTokens+segmentTokens > maxTokens && len(currentBatch.Segments) > 0 {
 			// Finalize current batch
 			bp.finalizeBatch(&currentBatch)
 			batches = append(batches, currentBatch)
-			
+
 			// Start new batch
 			currentBatch = SegmentBatch{
 				Segments:  []*model.TranscriptionSegment{segment},
@@ -93,13 +93,13 @@ func (bp *batchProcessor) CreateBatches(segments []*model.TranscriptionSegment, 
 			currentTokens += segmentTokens
 		}
 	}
-	
+
 	// Add final batch if it has segments
 	if len(currentBatch.Segments) > 0 {
 		bp.finalizeBatch(&currentBatch)
 		batches = append(batches, currentBatch)
 	}
-	
+
 	return batches, nil
 }
 
@@ -117,21 +117,21 @@ func (bp *batchProcessor) SplitTranslation(batch SegmentBatch, translation strin
 	// Check separator count
 	originalCount := strings.Count(batch.CombinedText, batch.Separator)
 	translatedCount := strings.Count(translation, batch.Separator)
-	
+
 	if originalCount != translatedCount {
 		return nil, errors.New("separator count mismatch")
 	}
-	
+
 	// Split translation by separator
 	translatedTexts := strings.Split(translation, batch.Separator)
-	
+
 	// Create translation segments
 	var results []*TranslationSegment
 	for i, segment := range batch.Segments {
 		if i >= len(translatedTexts) {
 			return nil, errors.New("insufficient translated texts")
 		}
-		
+
 		result := &TranslationSegment{
 			ID:              segment.ID,
 			TranscriptionID: segment.TranscriptionID,
@@ -141,6 +141,6 @@ func (bp *batchProcessor) SplitTranslation(batch SegmentBatch, translation strin
 		}
 		results = append(results, result)
 	}
-	
+
 	return results, nil
 }

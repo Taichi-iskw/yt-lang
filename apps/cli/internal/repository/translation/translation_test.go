@@ -51,7 +51,7 @@ func TestTranslationRepository_Create(t *testing.T) {
 			if tt.wantErr {
 				// Expect constraint violation error
 				mock.ExpectQuery("INSERT INTO translations").
-					WithArgs(tt.translation.TranscriptionID, tt.translation.TargetLanguage, 
+					WithArgs(tt.translation.TranscriptionID, tt.translation.TargetLanguage,
 						tt.translation.Content, tt.translation.Source).
 					WillReturnError(errors.New("constraint violation"))
 			} else {
@@ -59,7 +59,7 @@ func TestTranslationRepository_Create(t *testing.T) {
 				rows := mock.NewRows([]string{"id", "created_at"}).
 					AddRow(1, time.Now())
 				mock.ExpectQuery("INSERT INTO translations").
-					WithArgs(tt.translation.TranscriptionID, tt.translation.TargetLanguage, 
+					WithArgs(tt.translation.TranscriptionID, tt.translation.TargetLanguage,
 						tt.translation.Content, tt.translation.Source).
 					WillReturnRows(rows)
 			}
