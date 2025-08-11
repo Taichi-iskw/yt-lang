@@ -26,6 +26,7 @@ type TranslationRepository interface {
 type TranslationService interface {
 	CreateTranslation(ctx context.Context, transcriptionID string, targetLang string) (*model.Translation, error)
 	GetTranslation(ctx context.Context, id string) (*model.Translation, []*TranslationSegment, error)
+	GetPlamoService() PlamoService
 }
 
 // translationService implements TranslationService
@@ -85,9 +86,20 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 		return nil, err
 	}
 	
+	// Step 3: Optimize for batch translation - start server once for multiple batches
+	sourceLanguage := "en" // Default source language - should be detected from transcription
+	
+	// If we have multiple batches, start the server once for better performance
+	if len(batches) > 1 {
+		if err := s.plamoService.StartServer(ctx); err != nil {
+			// If server startup fails, continue with simple mode
+			// Server implementation will handle this gracefully
+		}
+		// Note: We don't defer StopServer here as it's managed at CLI level
+	}
+	
 	// Step 3: Translate each batch
 	var allTranslatedSegments []*TranslationSegment
-	sourceLanguage := "en" // Default source language - should be detected from transcription
 	
 	for _, batch := range batches {
 		// Translate batch
@@ -155,4 +167,9 @@ func joinSegments(segments []string) string {
 func (s *translationService) GetTranslation(ctx context.Context, id string) (*model.Translation, []*TranslationSegment, error) {
 	// TODO: implement
 	return nil, nil, errors.New("not implemented")
+}
+
+// GetPlamoService returns the PLaMo service instance
+func (s *translationService) GetPlamoService() PlamoService {
+	return s.plamoService
 }

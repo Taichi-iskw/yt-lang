@@ -32,6 +32,11 @@ func (m *mockTranslationService) GetTranslation(ctx context.Context, id string) 
 	return nil, nil, nil
 }
 
+func (m *mockTranslationService) GetPlamoService() translation.PlamoService {
+	// Return a mock PLaMo service
+	return translation.NewPlamoService(&translation.MockCmdRunner{})
+}
+
 func TestCreateCommand(t *testing.T) {
 	tests := []struct {
 		name           string
