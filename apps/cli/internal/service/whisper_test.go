@@ -67,11 +67,10 @@ func TestWhisperService_TranscribeAudio(t *testing.T) {
 				jsonData, _ := json.Marshal(whisperOutput)
 				os.WriteFile(outputPath, jsonData, 0644)
 
-				// Mock whisper command execution
+				// Mock whisper command execution (no --language for auto detection)
 				m.On("Run", mock.Anything, "whisper", []string{
 					"/tmp/test-audio.wav",
 					"--model", "large",
-					"--language", "auto",
 					"--output_format", "json",
 					"--output_dir", tempDir,
 					"--temperature", "0",
