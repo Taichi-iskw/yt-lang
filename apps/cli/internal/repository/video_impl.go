@@ -144,3 +144,51 @@ func (r *videoRepository) List(ctx context.Context, limit, offset int) ([]*model
 
 	return videos, nil
 }
+
+// UpsertBatch creates or ignores multiple video records, filtering duplicates by channel
+func (r *videoRepository) UpsertBatch(ctx context.Context, videos []*model.Video) error {
+	if len(videos) == 0 {
+		return nil
+	}
+
+	// Get the channel ID from first video (assume all videos belong to same channel)
+	channelID := videos[0].ChannelID
+
+	// Step 1: Get existing video IDs for the channel
+	sql := "SELECT id FROM videos WHERE channel_id = $1"
+	rows, err := r.pool.Query(ctx, sql, channelID)
+	if err != nil {
+		return handlePostgreSQLError(err, "failed to get existing video IDs")
+	}
+	defer rows.Close()
+
+	// Build set of existing video IDs
+	existingIDs := make(map[string]bool)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return handlePostgreSQLError(err, "failed to scan video ID")
+		}
+		existingIDs[id] = true
+	}
+
+	if err := rows.Err(); err != nil {
+		return handlePostgreSQLError(err, "failed to iterate existing video IDs")
+	}
+
+	// Step 2: Filter out existing videos
+	newVideos := make([]*model.Video, 0, len(videos))
+	for _, video := range videos {
+		if !existingIDs[video.ID] {
+			newVideos = append(newVideos, video)
+		}
+	}
+
+	// Step 3: If no new videos, return early
+	if len(newVideos) == 0 {
+		return nil
+	}
+
+	// Step 4: Use existing COPY FROM for new videos only
+	return r.CreateBatch(ctx, newVideos)
+}

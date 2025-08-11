@@ -75,8 +75,8 @@ func (s *youTubeService) SaveChannelVideos(ctx context.Context, channelURL strin
 		return nil, err
 	}
 
-	// Save videos to database using batch create
-	err = s.videoRepo.CreateBatch(ctx, videos)
+	// Save videos to database using upsert batch (handles duplicates)
+	err = s.videoRepo.UpsertBatch(ctx, videos)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.CodeInternal, "failed to save videos to database")
 	}

@@ -168,18 +168,17 @@ func TestYouTubeService_SaveChannelVideos(t *testing.T) {
 					Return(nil)
 			},
 			videoRepoSetup: func(m *mockVideoRepository) {
-				// Batch create videos
-				m.On("CreateBatch", mock.Anything, mock.AnythingOfType("[]*model.Video")).
+				// Batch upsert videos
+				m.On("UpsertBatch", mock.Anything, mock.AnythingOfType("[]*model.Video")).
 					Return(nil)
 			},
-			wantVideos: []*model.Video{
-				{
-					ID:        "video1",
-					ChannelID: "UC123456789",
-					Title:     "Test Video 1",
-					URL:       "https://www.youtube.com/watch?v=video1",
-					Duration:  300,
-				},
+			wantVideos: []*model.Video{{
+				ID:        "video1",
+				ChannelID: "UC123456789",
+				Title:     "Test Video 1",
+				URL:       "https://www.youtube.com/watch?v=video1",
+				Duration:  300,
+			},
 				{
 					ID:        "video2",
 					ChannelID: "UC123456789",
@@ -236,8 +235,8 @@ func TestYouTubeService_SaveChannelVideos(t *testing.T) {
 					Return(existingChannel, nil)
 			},
 			videoRepoSetup: func(m *mockVideoRepository) {
-				// Batch create videos fails
-				m.On("CreateBatch", mock.Anything, mock.AnythingOfType("[]*model.Video")).
+				// Batch upsert videos fails
+				m.On("UpsertBatch", mock.Anything, mock.AnythingOfType("[]*model.Video")).
 					Return(assert.AnError)
 			},
 			wantVideos:    nil,

@@ -68,6 +68,11 @@ func (m *mockVideoRepository) CreateBatch(ctx context.Context, videos []*model.V
 	return args.Error(0)
 }
 
+func (m *mockVideoRepository) UpsertBatch(ctx context.Context, videos []*model.Video) error {
+	args := m.Called(ctx, videos)
+	return args.Error(0)
+}
+
 func (m *mockVideoRepository) GetByID(ctx context.Context, id string) (*model.Video, error) {
 	args := m.Called(ctx, id)
 	return args.Get(0).(*model.Video), args.Error(1)
