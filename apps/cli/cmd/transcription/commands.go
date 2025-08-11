@@ -10,8 +10,6 @@ import (
 
 	"github.com/Taichi-iskw/yt-lang/internal/config"
 	"github.com/Taichi-iskw/yt-lang/internal/repository/transcription"
-	"github.com/Taichi-iskw/yt-lang/internal/repository/video"
-	"github.com/Taichi-iskw/yt-lang/internal/service/common"
 	transcriptionSvc "github.com/Taichi-iskw/yt-lang/internal/service/transcription"
 )
 
@@ -25,98 +23,15 @@ func NewTranscriptionCmd() *cobra.Command {
 	}
 
 	// Add subcommands
-	transcriptionCmd.AddCommand(newCreateCmd())
-	transcriptionCmd.AddCommand(newGetCmd())
-	transcriptionCmd.AddCommand(newListCmd())
-	transcriptionCmd.AddCommand(newDeleteCmd())
+	transcriptionCmd.AddCommand(NewCreateCmd())
+	transcriptionCmd.AddCommand(NewGetCmd())
+	transcriptionCmd.AddCommand(NewListCmd())
+	transcriptionCmd.AddCommand(NewDeleteCmd())
 
 	return transcriptionCmd
 }
 
-// newCreateCmd creates the transcription create command
-func newCreateCmd() *cobra.Command {
-	createCmd := &cobra.Command{
-		Use:   "create [VIDEO_ID]",
-		Short: "Create transcription for a video",
-		Long:  `Create a transcription for a video by downloading its audio using yt-dlp and processing with Whisper.`,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			videoID := args[0]
-
-			// Get flags
-			language, _ := cmd.Flags().GetString("language")
-			dryRun, _ := cmd.Flags().GetBool("dry-run")
-			format, _ := cmd.Flags().GetString("format")
-			model, _ := cmd.Flags().GetString("model")
-
-			// Create service with timeout context
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
-			defer cancel()
-
-			if dryRun {
-				// Dry-run mode: test transcription without saving to database
-				return runDryRunMode(ctx, videoID, language, format, model)
-			}
-
-			// Load database configuration
-			cfg, err := config.NewConfig()
-			if err != nil {
-				return formatTranscriptionError(err, videoID)
-			}
-
-			// Create database connection
-			dbPool, err := config.NewDatabasePool(ctx, cfg)
-			if err != nil {
-				return formatTranscriptionError(err, videoID)
-			}
-			defer dbPool.Close()
-
-			// Create repositories and services
-			transcriptionRepo := transcription.NewRepository(dbPool)
-			segmentRepo := transcription.NewSegmentRepository(dbPool)
-			videoRepo := video.NewRepository(dbPool)
-			whisperService := transcriptionSvc.NewWhisperServiceWithCmdRunner(common.NewCmdRunner(), model)
-			audioDownloadService := transcriptionSvc.NewAudioDownloadService()
-
-			transcriptionService := transcriptionSvc.NewTranscriptionServiceWithAllDependencies(
-				transcriptionRepo,
-				segmentRepo,
-				whisperService,
-				audioDownloadService,
-				videoRepo,
-			)
-
-			// Execute transcription
-			result, err := transcriptionService.CreateTranscription(ctx, videoID, language)
-			if err != nil {
-				return formatTranscriptionError(err, videoID)
-			}
-
-			fmt.Printf("✅ Transcription created successfully!\n")
-			fmt.Printf("ID: %s\n", result.ID)
-			fmt.Printf("Video ID: %s\n", result.VideoID)
-			fmt.Printf("Language: %s\n", result.Language)
-			fmt.Printf("Status: %s\n", result.Status)
-			if result.DetectedLanguage != nil {
-				fmt.Printf("Detected Language: %s\n", *result.DetectedLanguage)
-			}
-			fmt.Printf("Created: %s\n", result.CreatedAt.Format(time.RFC3339))
-
-			return nil
-		},
-	}
-
-	// Add flags
-	createCmd.Flags().StringP("language", "l", "auto", "Language for transcription (e.g., 'en', 'ja', 'auto')")
-	createCmd.Flags().BoolP("dry-run", "n", false, "Dry-run mode: test transcription without saving to database")
-	createCmd.Flags().StringP("format", "f", "text", "Output format for dry-run mode: text, json, srt")
-	createCmd.Flags().StringP("model", "m", "base", "Whisper model to use: tiny, base, small, medium, large")
-
-	return createCmd
-}
-
-// newGetCmd creates the transcription get command
-func newGetCmd() *cobra.Command {
+func NewGetCmd() *cobra.Command {
 	getCmd := &cobra.Command{
 		Use:   "get [TRANSCRIPTION_ID]",
 		Short: "Get transcription by ID",
@@ -207,8 +122,7 @@ func newGetCmd() *cobra.Command {
 	return getCmd
 }
 
-// newListCmd creates the transcription list command
-func newListCmd() *cobra.Command {
+func NewListCmd() *cobra.Command {
 	listCmd := &cobra.Command{
 		Use:   "list [VIDEO_ID]",
 		Short: "List transcriptions for a video",
@@ -278,8 +192,7 @@ func newListCmd() *cobra.Command {
 	return listCmd
 }
 
-// newDeleteCmd creates the transcription delete command
-func newDeleteCmd() *cobra.Command {
+func NewDeleteCmd() *cobra.Command {
 	deleteCmd := &cobra.Command{
 		Use:   "delete [TRANSCRIPTION_ID]",
 		Short: "Delete transcription by ID",
@@ -344,3 +257,4 @@ func newDeleteCmd() *cobra.Command {
 
 	return deleteCmd
 }
+
