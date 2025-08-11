@@ -1,6 +1,6 @@
 //go:build integration
 
-package repository
+package video
 
 import (
 	"context"
@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/Taichi-iskw/yt-lang/internal/model"
+	"github.com/Taichi-iskw/yt-lang/internal/repository/channel"
+	"github.com/Taichi-iskw/yt-lang/internal/repository/common"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -26,10 +28,10 @@ func BenchmarkVideoRepository_InsertMethods(b *testing.B) {
 	}()
 
 	// Create repository
-	repo := NewVideoRepository(pool)
+	repo := NewRepository(pool)
 
 	// Create test channel first
-	channelRepo := NewChannelRepository(pool)
+	channelRepo := channel.NewRepository(pool)
 	ctx := context.Background()
 
 	channel := &model.Channel{
@@ -103,8 +105,8 @@ func BenchmarkVideoRepository_MemoryUsage(b *testing.B) {
 		}
 	}()
 
-	repo := NewVideoRepository(pool)
-	channelRepo := NewChannelRepository(pool)
+	repo := NewRepository(pool)
+	channelRepo := channel.NewRepository(pool)
 	ctx := context.Background()
 
 	// Create test channel
@@ -201,7 +203,7 @@ func setupBenchmarkDB(b *testing.B) Pool {
 	connStr := fmt.Sprintf("postgres://benchuser:benchpass@%s:%s/benchmarkdb?sslmode=disable", host, port.Port())
 
 	// Run migrations
-	err = runMigrations(connStr)
+	err = common.RunMigrations(connStr)
 	require.NoError(b, err)
 
 	// Create connection pool with optimized settings for benchmarking

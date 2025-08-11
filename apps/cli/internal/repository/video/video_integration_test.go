@@ -1,48 +1,45 @@
 //go:build integration
 
-package repository
+package video
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/Taichi-iskw/yt-lang/internal/model"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/Taichi-iskw/yt-lang/internal/repository/channel"
+	"github.com/Taichi-iskw/yt-lang/internal/repository/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 // TestVideoRepository_Integration tests Video Repository with real PostgreSQL
 func TestVideoRepository_Integration(t *testing.T) {
 	// Setup real PostgreSQL using testcontainers
-	pool := setupTestDBForVideo(t)
-	defer teardownTestDB(pool)
+	pool := common.SetupTestDB(t)
 
 	// Create repository with real connection pool
-	repo := NewVideoRepository(pool)
+	repo := NewRepository(pool)
 
 	// Test data - first create a channel
-	channel := &model.Channel{
+	testChannel := &model.Channel{
 		ID:   "UC123456789",
 		Name: "Test Channel",
 		URL:  "https://www.youtube.com/channel/UC123456789",
 	}
 
-	channelRepo := NewChannelRepository(pool)
+	channelRepo := channel.NewRepository(pool)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	err := channelRepo.Create(ctx, channel)
+	err := channelRepo.Create(ctx, testChannel)
 	require.NoError(t, err)
 
 	// Test video data
 	video := &model.Video{
 		ID:        "dQw4w9WgXcQ",
-		ChannelID: channel.ID,
+		ChannelID: testChannel.ID,
 		Title:     "Never Gonna Give You Up",
 		URL:       "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
 		Duration:  212,
@@ -64,7 +61,7 @@ func TestVideoRepository_Integration(t *testing.T) {
 	})
 
 	t.Run("GetByChannelID", func(t *testing.T) {
-		videos, err := repo.GetByChannelID(ctx, channel.ID, 10, 0)
+		videos, err := repo.GetByChannelID(ctx, testChannel.ID, 10, 0)
 		require.NoError(t, err)
 		assert.NotEmpty(t, videos)
 		assert.Equal(t, video.ID, videos[0].ID)
@@ -75,14 +72,14 @@ func TestVideoRepository_Integration(t *testing.T) {
 		batchVideos := []*model.Video{
 			{
 				ID:        "oHg5SJYRHA0",
-				ChannelID: channel.ID,
+				ChannelID: testChannel.ID,
 				Title:     "Batch Video 1",
 				URL:       "https://www.youtube.com/watch?v=oHg5SJYRHA0",
 				Duration:  233,
 			},
 			{
 				ID:        "iik25wqIuFo",
-				ChannelID: channel.ID,
+				ChannelID: testChannel.ID,
 				Title:     "Batch Video 2",
 				URL:       "https://www.youtube.com/watch?v=iik25wqIuFo",
 				Duration:  185,
@@ -94,7 +91,7 @@ func TestVideoRepository_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify batch insert worked
-		allVideos, err := repo.GetByChannelID(ctx, channel.ID, 10, 0)
+		allVideos, err := repo.GetByChannelID(ctx, testChannel.ID, 10, 0)
 		require.NoError(t, err)
 		assert.Len(t, allVideos, 3) // original + 2 batch videos
 	})
@@ -127,61 +124,4 @@ func TestVideoRepository_Integration(t *testing.T) {
 		_, err = repo.GetByID(ctx, video.ID)
 		assert.Error(t, err) // Should return NOT_FOUND error
 	})
-}
-
-// setupTestDBForVideo creates a real PostgreSQL database for video testing (separate from channel test)
-func setupTestDBForVideo(t *testing.T) Pool {
-	ctx := context.Background()
-
-	// Define PostgreSQL container request
-	req := testcontainers.ContainerRequest{
-		Image:        "postgres:15-alpine",
-		ExposedPorts: []string{"5432/tcp"},
-		Env: map[string]string{
-			"POSTGRES_DB":       "testvideodb",
-			"POSTGRES_USER":     "testuser",
-			"POSTGRES_PASSWORD": "testpass",
-		},
-		WaitingFor: wait.ForListeningPort("5432/tcp"),
-	}
-
-	// Start PostgreSQL container
-	postgresContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
-	require.NoError(t, err)
-
-	// Get host and port
-	host, err := postgresContainer.Host(ctx)
-	require.NoError(t, err)
-
-	port, err := postgresContainer.MappedPort(ctx, "5432")
-	require.NoError(t, err)
-
-	// Build connection string
-	connStr := fmt.Sprintf("postgres://testuser:testpass@%s:%s/testvideodb?sslmode=disable", host, port.Port())
-
-	// Run migrations using real migration files
-	err = runMigrations(connStr)
-	require.NoError(t, err)
-
-	// Create connection pool
-	config, err := pgxpool.ParseConfig(connStr)
-	require.NoError(t, err)
-
-	pool, err := pgxpool.NewWithConfig(ctx, config)
-	require.NoError(t, err)
-
-	// Store container for cleanup
-	t.Cleanup(func() {
-		if pool != nil {
-			pool.Close()
-		}
-		if postgresContainer != nil {
-			postgresContainer.Terminate(ctx)
-		}
-	})
-
-	return pool
 }

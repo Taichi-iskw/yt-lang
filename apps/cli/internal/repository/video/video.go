@@ -1,4 +1,4 @@
-package repository
+package video
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"github.com/Taichi-iskw/yt-lang/internal/model"
 )
 
-// VideoRepository defines operations for Video persistence
-type VideoRepository interface {
+// Repository defines operations for Video persistence
+type Repository interface {
 	// Create creates a new video record
 	Create(ctx context.Context, video *model.Video) error
 

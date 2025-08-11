@@ -1,4 +1,4 @@
-package repository
+package video
 
 import (
 	"context"
@@ -6,16 +6,28 @@ import (
 
 	apperrors "github.com/Taichi-iskw/yt-lang/internal/errors"
 	"github.com/Taichi-iskw/yt-lang/internal/model"
+	"github.com/Taichi-iskw/yt-lang/internal/repository/common"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// videoRepository implements VideoRepository using PostgreSQL
+// Pool interface for abstracting pgx connection pool
+type Pool interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error)
+	Begin(ctx context.Context) (pgx.Tx, error)
+	Close()
+}
+
+// videoRepository implements Repository using PostgreSQL
 type videoRepository struct {
 	pool Pool
 }
 
-// NewVideoRepository creates a new instance of VideoRepository
-func NewVideoRepository(pool Pool) VideoRepository {
+// NewRepository creates a new instance of Repository
+func NewRepository(pool Pool) Repository {
 	return &videoRepository{
 		pool: pool,
 	}
@@ -26,7 +38,7 @@ func (r *videoRepository) Create(ctx context.Context, video *model.Video) error 
 	sql := "INSERT INTO videos (id, channel_id, title, url, duration) VALUES ($1, $2, $3, $4, $5)"
 	_, err := r.pool.Exec(ctx, sql, video.ID, video.ChannelID, video.Title, video.URL, video.Duration)
 	if err != nil {
-		return handlePostgreSQLError(err, "failed to create video")
+		return common.HandlePostgreSQLError(err, "failed to create video")
 	}
 	return nil
 }
@@ -50,7 +62,7 @@ func (r *videoRepository) CreateBatch(ctx context.Context, videos []*model.Video
 
 	_, err := r.pool.CopyFrom(ctx, tableName, columnNames, copyFromSource)
 	if err != nil {
-		return handlePostgreSQLError(err, "failed to create videos in batch using COPY FROM")
+		return common.HandlePostgreSQLError(err, "failed to create videos in batch using COPY FROM")
 	}
 
 	return nil
@@ -67,7 +79,7 @@ func (r *videoRepository) GetByID(ctx context.Context, id string) (*model.Video,
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperrors.Wrap(err, apperrors.CodeNotFound, "video not found")
 		}
-		return nil, handlePostgreSQLError(err, "failed to get video")
+		return nil, common.HandlePostgreSQLError(err, "failed to get video")
 	}
 
 	return &video, nil
@@ -78,7 +90,7 @@ func (r *videoRepository) GetByChannelID(ctx context.Context, channelID string, 
 	sql := "SELECT id, channel_id, title, url, duration FROM videos WHERE channel_id = $1 ORDER BY id LIMIT $2 OFFSET $3"
 	rows, err := r.pool.Query(ctx, sql, channelID, limit, offset)
 	if err != nil {
-		return nil, handlePostgreSQLError(err, "failed to get videos by channel ID")
+		return nil, common.HandlePostgreSQLError(err, "failed to get videos by channel ID")
 	}
 	defer rows.Close()
 
@@ -87,13 +99,13 @@ func (r *videoRepository) GetByChannelID(ctx context.Context, channelID string, 
 		var video model.Video
 		err := rows.Scan(&video.ID, &video.ChannelID, &video.Title, &video.URL, &video.Duration)
 		if err != nil {
-			return nil, handlePostgreSQLError(err, "failed to scan video row")
+			return nil, common.HandlePostgreSQLError(err, "failed to scan video row")
 		}
 		videos = append(videos, &video)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, handlePostgreSQLError(err, "failed to iterate video rows")
+		return nil, common.HandlePostgreSQLError(err, "failed to iterate video rows")
 	}
 
 	return videos, nil
@@ -104,7 +116,7 @@ func (r *videoRepository) Update(ctx context.Context, video *model.Video) error 
 	sql := "UPDATE videos SET channel_id = $2, title = $3, url = $4, duration = $5 WHERE id = $1"
 	_, err := r.pool.Exec(ctx, sql, video.ID, video.ChannelID, video.Title, video.URL, video.Duration)
 	if err != nil {
-		return handlePostgreSQLError(err, "failed to update video")
+		return common.HandlePostgreSQLError(err, "failed to update video")
 	}
 	return nil
 }
@@ -114,7 +126,7 @@ func (r *videoRepository) Delete(ctx context.Context, id string) error {
 	sql := "DELETE FROM videos WHERE id = $1"
 	_, err := r.pool.Exec(ctx, sql, id)
 	if err != nil {
-		return handlePostgreSQLError(err, "failed to delete video")
+		return common.HandlePostgreSQLError(err, "failed to delete video")
 	}
 	return nil
 }
@@ -124,7 +136,7 @@ func (r *videoRepository) List(ctx context.Context, limit, offset int) ([]*model
 	sql := "SELECT id, channel_id, title, url, duration FROM videos ORDER BY id LIMIT $1 OFFSET $2"
 	rows, err := r.pool.Query(ctx, sql, limit, offset)
 	if err != nil {
-		return nil, handlePostgreSQLError(err, "failed to list videos")
+		return nil, common.HandlePostgreSQLError(err, "failed to list videos")
 	}
 	defer rows.Close()
 
@@ -133,13 +145,13 @@ func (r *videoRepository) List(ctx context.Context, limit, offset int) ([]*model
 		var video model.Video
 		err := rows.Scan(&video.ID, &video.ChannelID, &video.Title, &video.URL, &video.Duration)
 		if err != nil {
-			return nil, handlePostgreSQLError(err, "failed to scan video row")
+			return nil, common.HandlePostgreSQLError(err, "failed to scan video row")
 		}
 		videos = append(videos, &video)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, handlePostgreSQLError(err, "failed to iterate video rows")
+		return nil, common.HandlePostgreSQLError(err, "failed to iterate video rows")
 	}
 
 	return videos, nil
@@ -158,7 +170,7 @@ func (r *videoRepository) UpsertBatch(ctx context.Context, videos []*model.Video
 	sql := "SELECT id FROM videos WHERE channel_id = $1"
 	rows, err := r.pool.Query(ctx, sql, channelID)
 	if err != nil {
-		return handlePostgreSQLError(err, "failed to get existing video IDs")
+		return common.HandlePostgreSQLError(err, "failed to get existing video IDs")
 	}
 	defer rows.Close()
 
@@ -167,13 +179,13 @@ func (r *videoRepository) UpsertBatch(ctx context.Context, videos []*model.Video
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
-			return handlePostgreSQLError(err, "failed to scan video ID")
+			return common.HandlePostgreSQLError(err, "failed to scan video ID")
 		}
 		existingIDs[id] = true
 	}
 
 	if err := rows.Err(); err != nil {
-		return handlePostgreSQLError(err, "failed to iterate existing video IDs")
+		return common.HandlePostgreSQLError(err, "failed to iterate existing video IDs")
 	}
 
 	// Step 2: Filter out existing videos

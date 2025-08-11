@@ -9,7 +9,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/Taichi-iskw/yt-lang/internal/config"
-	"github.com/Taichi-iskw/yt-lang/internal/repository"
+	"github.com/Taichi-iskw/yt-lang/internal/repository/channel"
+	"github.com/Taichi-iskw/yt-lang/internal/repository/video"
 	"github.com/Taichi-iskw/yt-lang/internal/service"
 )
 
@@ -80,8 +81,8 @@ var channelSaveCmd = &cobra.Command{
 		defer dbPool.Close()
 
 		// Create repositories
-		channelRepo := repository.NewChannelRepository(dbPool)
-		videoRepo := repository.NewVideoRepository(dbPool)
+		channelRepo := channel.NewRepository(dbPool)
+		videoRepo := video.NewRepository(dbPool)
 
 		// Create YouTube service with repositories
 		youtubeService := service.NewYouTubeServiceWithRepositories(
@@ -131,8 +132,8 @@ var channelListCmd = &cobra.Command{
 		defer dbPool.Close()
 
 		// Create repositories
-		channelRepo := repository.NewChannelRepository(dbPool)
-		videoRepo := repository.NewVideoRepository(dbPool)
+		channelRepo := channel.NewRepository(dbPool)
+		videoRepo := video.NewRepository(dbPool)
 
 		// Create YouTube service with repositories
 		youtubeService := service.NewYouTubeServiceWithRepositories(

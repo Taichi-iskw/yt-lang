@@ -1,4 +1,4 @@
-package repository
+package transcription
 
 import (
 	"context"

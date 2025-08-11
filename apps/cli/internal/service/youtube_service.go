@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"github.com/Taichi-iskw/yt-lang/internal/model"
-	"github.com/Taichi-iskw/yt-lang/internal/repository"
+	"github.com/Taichi-iskw/yt-lang/internal/repository/channel"
+	"github.com/Taichi-iskw/yt-lang/internal/repository/video"
 )
 
 // YouTubeService is interface for YouTube operations
@@ -20,8 +21,8 @@ type YouTubeService interface {
 // youTubeService implements YouTubeService
 type youTubeService struct {
 	cmdRunner   CmdRunner
-	channelRepo repository.ChannelRepository
-	videoRepo   repository.VideoRepository
+	channelRepo channel.Repository
+	videoRepo   video.Repository
 }
 
 // NewYouTubeService creates a new YouTubeService
@@ -37,7 +38,7 @@ func NewYouTubeServiceWithCmdRunner(cmdRunner CmdRunner) YouTubeService {
 }
 
 // NewYouTubeServiceWithRepositories creates a new YouTubeService with custom repositories (for testing)
-func NewYouTubeServiceWithRepositories(cmdRunner CmdRunner, channelRepo repository.ChannelRepository, videoRepo repository.VideoRepository) YouTubeService {
+func NewYouTubeServiceWithRepositories(cmdRunner CmdRunner, channelRepo channel.Repository, videoRepo video.Repository) YouTubeService {
 	return &youTubeService{
 		cmdRunner:   cmdRunner,
 		channelRepo: channelRepo,

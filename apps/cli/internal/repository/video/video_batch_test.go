@@ -1,4 +1,4 @@
-package repository
+package video
 
 import (
 	"context"
@@ -87,7 +87,7 @@ func TestVideoRepository_CreateBatch(t *testing.T) {
 			tt.setup(mock)
 
 			// Create repository
-			repo := NewVideoRepository(mock)
+			repo := NewRepository(mock)
 
 			// Execute test
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -219,7 +219,7 @@ func TestVideoRepository_UpsertBatch(t *testing.T) {
 			tt.setup(mock)
 
 			// Create repository
-			repo := NewVideoRepository(mock)
+			repo := NewRepository(mock)
 
 			// Execute test
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

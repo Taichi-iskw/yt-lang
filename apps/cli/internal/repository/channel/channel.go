@@ -1,4 +1,4 @@
-package repository
+package channel
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"github.com/Taichi-iskw/yt-lang/internal/model"
 )
 
-// ChannelRepository defines operations for Channel persistence
-type ChannelRepository interface {
+// Repository defines operations for Channel persistence
+type Repository interface {
 	// Create creates a new channel record
 	Create(ctx context.Context, channel *model.Channel) error
 

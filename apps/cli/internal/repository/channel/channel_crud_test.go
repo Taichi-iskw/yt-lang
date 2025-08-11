@@ -1,4 +1,4 @@
-package repository
+package channel
 
 import (
 	"context"
@@ -59,7 +59,7 @@ func TestChannelRepository_Create(t *testing.T) {
 			tt.setup(mock)
 
 			// Create repository
-			repo := NewChannelRepository(mock)
+			repo := NewRepository(mock)
 
 			// Execute test
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -141,7 +141,7 @@ func TestChannelRepository_GetByID(t *testing.T) {
 			tt.setup(mock)
 
 			// Create repository
-			repo := NewChannelRepository(mock)
+			repo := NewRepository(mock)
 
 			// Execute test
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -203,7 +203,7 @@ func TestChannelRepository_GetByURL(t *testing.T) {
 			tt.setup(mock)
 
 			// Create repository
-			repo := NewChannelRepository(mock)
+			repo := NewRepository(mock)
 
 			// Execute test
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -261,7 +261,7 @@ func TestChannelRepository_Update(t *testing.T) {
 			tt.setup(mock)
 
 			// Create repository
-			repo := NewChannelRepository(mock)
+			repo := NewRepository(mock)
 
 			// Execute test
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -313,7 +313,7 @@ func TestChannelRepository_Delete(t *testing.T) {
 			tt.setup(mock)
 
 			// Create repository
-			repo := NewChannelRepository(mock)
+			repo := NewRepository(mock)
 
 			// Execute test
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

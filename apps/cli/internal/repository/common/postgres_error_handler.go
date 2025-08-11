@@ -1,4 +1,4 @@
-package repository
+package common
 
 import (
 	"errors"
@@ -8,8 +8,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// handlePostgreSQLError converts PostgreSQL-specific errors to appropriate AppError codes
-func handlePostgreSQLError(err error, operation string) *apperrors.AppError {
+// HandlePostgreSQLError converts PostgreSQL-specific errors to appropriate AppError codes
+func HandlePostgreSQLError(err error, operation string) *apperrors.AppError {
 	if err == nil {
 		return nil
 	}
