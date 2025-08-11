@@ -35,7 +35,6 @@ func createTranslationCommand() *cobra.Command {
 			cmd.Println("")
 			cmd.Println("Example:")
 			cmd.Println("  ytlang translation create trans-123 --target-lang ja")
-			cmd.Println("  ytlang translation create trans-123 --target-lang ja --use-server")
 			cmd.Println("  ytlang translation create trans-123 --target-lang ja --dry-run")
 			return nil
 		},

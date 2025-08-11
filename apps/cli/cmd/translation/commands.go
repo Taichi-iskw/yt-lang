@@ -45,7 +45,6 @@ func NewCreateCommand(service translation.TranslationService) *cobra.Command {
 			// Get flags
 			targetLang, _ := cmd.Flags().GetString("target-lang")
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
-			useServer, _ := cmd.Flags().GetBool("use-server")
 
 			if dryRun {
 				cmd.Println("DRY RUN: Would create translation for transcription", transcriptionID, "to", targetLang)
@@ -54,22 +53,20 @@ func NewCreateCommand(service translation.TranslationService) *cobra.Command {
 
 			ctx := context.Background()
 
-			// Start PLaMo server if server mode is enabled
-			if useServer {
-				plamoService := service.GetPlamoService()
-				cmd.Println("Starting PLaMo server...")
-				if err := plamoService.StartServer(ctx); err != nil {
-					return fmt.Errorf("failed to start PLaMo server: %w", err)
-				}
-
-				// Ensure server is stopped when command completes
-				defer func() {
-					cmd.Println("Stopping PLaMo server...")
-					if err := plamoService.StopServer(); err != nil {
-						cmd.Printf("Warning: failed to stop PLaMo server: %v\n", err)
-					}
-				}()
+			// Always start PLaMo server for better performance
+			plamoService := service.GetPlamoService()
+			cmd.Println("Starting PLaMo server...")
+			if err := plamoService.StartServer(ctx); err != nil {
+				return fmt.Errorf("failed to start PLaMo server: %w", err)
 			}
+
+			// Ensure server is stopped when command completes
+			defer func() {
+				cmd.Println("Stopping PLaMo server...")
+				if err := plamoService.StopServer(); err != nil {
+					cmd.Printf("Warning: failed to stop PLaMo server: %v\n", err)
+				}
+			}()
 
 			// Create translation
 			translation, err := service.CreateTranslation(ctx, transcriptionID, targetLang)
@@ -86,7 +83,6 @@ func NewCreateCommand(service translation.TranslationService) *cobra.Command {
 	// Add flags
 	cmd.Flags().StringVar(&targetLang, "target-lang", "ja", "Target language for translation")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Perform a dry run without saving to database")
-	cmd.Flags().Bool("use-server", true, "Use PLaMo server mode for better performance with multiple batches")
 
 	return cmd
 }
