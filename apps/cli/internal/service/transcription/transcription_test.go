@@ -1,4 +1,4 @@
-package service
+package transcription
 
 import (
 	"context"
@@ -106,6 +106,60 @@ type mockAudioDownloadService struct {
 func (m *mockAudioDownloadService) DownloadAudio(ctx context.Context, videoURL string, outputDir string) (string, error) {
 	args := m.Called(ctx, videoURL, outputDir)
 	return args.String(0), args.Error(1)
+}
+
+// mockVideoRepository for testing
+type mockVideoRepository struct {
+	mock.Mock
+}
+
+func (m *mockVideoRepository) Create(ctx context.Context, video *model.Video) error {
+	args := m.Called(ctx, video)
+	return args.Error(0)
+}
+
+func (m *mockVideoRepository) CreateBatch(ctx context.Context, videos []*model.Video) error {
+	args := m.Called(ctx, videos)
+	return args.Error(0)
+}
+
+func (m *mockVideoRepository) UpsertBatch(ctx context.Context, videos []*model.Video) error {
+	args := m.Called(ctx, videos)
+	return args.Error(0)
+}
+
+func (m *mockVideoRepository) GetByID(ctx context.Context, id string) (*model.Video, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Video), args.Error(1)
+}
+
+func (m *mockVideoRepository) GetByChannelID(ctx context.Context, channelID string, limit, offset int) ([]*model.Video, error) {
+	args := m.Called(ctx, channelID, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*model.Video), args.Error(1)
+}
+
+func (m *mockVideoRepository) Update(ctx context.Context, video *model.Video) error {
+	args := m.Called(ctx, video)
+	return args.Error(0)
+}
+
+func (m *mockVideoRepository) Delete(ctx context.Context, id string) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *mockVideoRepository) List(ctx context.Context, limit, offset int) ([]*model.Video, error) {
+	args := m.Called(ctx, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*model.Video), args.Error(1)
 }
 
 func TestTranscriptionService_CreateTranscription(t *testing.T) {

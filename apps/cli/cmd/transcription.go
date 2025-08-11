@@ -14,7 +14,8 @@ import (
 	"github.com/Taichi-iskw/yt-lang/internal/model"
 	"github.com/Taichi-iskw/yt-lang/internal/repository/transcription"
 	"github.com/Taichi-iskw/yt-lang/internal/repository/video"
-	"github.com/Taichi-iskw/yt-lang/internal/service"
+	"github.com/Taichi-iskw/yt-lang/internal/service/common"
+	transcriptionSvc "github.com/Taichi-iskw/yt-lang/internal/service/transcription"
 )
 
 // transcriptionCmd represents the transcription command
@@ -68,9 +69,9 @@ var transcriptionCreateCmd = &cobra.Command{
 		videoRepo := video.NewRepository(dbPool)
 
 		// Create services
-		whisperService := service.NewWhisperServiceWithCmdRunner(service.NewCmdRunner(), model)
-		audioDownloadService := service.NewAudioDownloadService()
-		transcriptionService := service.NewTranscriptionServiceWithAllDependencies(
+		whisperService := transcriptionSvc.NewWhisperServiceWithCmdRunner(common.NewCmdRunner(), model)
+		audioDownloadService := transcriptionSvc.NewAudioDownloadService()
+		transcriptionService := transcriptionSvc.NewTranscriptionServiceWithAllDependencies(
 			transcriptionRepo,
 			segmentRepo,
 			whisperService,
@@ -130,7 +131,7 @@ var transcriptionGetCmd = &cobra.Command{
 		segmentRepo := transcription.NewSegmentRepository(dbPool)
 
 		// Create transcription service
-		transcriptionService := service.NewTranscriptionServiceWithDependencies(
+		transcriptionService := transcriptionSvc.NewTranscriptionServiceWithDependencies(
 			transcriptionRepo,
 			segmentRepo,
 			nil, // whisperService not needed for get operation
@@ -217,7 +218,7 @@ var transcriptionListCmd = &cobra.Command{
 		segmentRepo := transcription.NewSegmentRepository(dbPool)
 
 		// Create transcription service
-		transcriptionService := service.NewTranscriptionServiceWithDependencies(
+		transcriptionService := transcriptionSvc.NewTranscriptionServiceWithDependencies(
 			transcriptionRepo,
 			segmentRepo,
 			nil, // whisperService not needed for list operation
@@ -262,8 +263,8 @@ var transcriptionListCmd = &cobra.Command{
 // This function directly uses services without repository layer
 func runDryRunMode(ctx context.Context, videoID, language, format, model string) error {
 	// Create services (no database needed)
-	whisperService := service.NewWhisperServiceWithCmdRunner(service.NewCmdRunner(), model)
-	audioDownloadService := service.NewAudioDownloadService()
+	whisperService := transcriptionSvc.NewWhisperServiceWithCmdRunner(common.NewCmdRunner(), model)
+	audioDownloadService := transcriptionSvc.NewAudioDownloadService()
 
 	fmt.Printf("🎵 Testing transcription for video %s (dry-run mode)...\n", videoID)
 	fmt.Printf("Language: %s\n", language)
@@ -357,7 +358,7 @@ var transcriptionDeleteCmd = &cobra.Command{
 		segmentRepo := transcription.NewSegmentRepository(dbPool)
 
 		// Create transcription service
-		transcriptionService := service.NewTranscriptionServiceWithDependencies(
+		transcriptionService := transcriptionSvc.NewTranscriptionServiceWithDependencies(
 			transcriptionRepo,
 			segmentRepo,
 			nil, // whisperService not needed for delete operation
@@ -448,7 +449,7 @@ func formatTranscriptionError(err error, videoID string) error {
 	}
 
 	errMsg := err.Error()
-	
+
 	// Check for specific error patterns and provide helpful messages
 	switch {
 	case strings.Contains(errMsg, "video is not available"):

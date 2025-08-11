@@ -11,7 +11,8 @@ import (
 	"github.com/Taichi-iskw/yt-lang/internal/config"
 	"github.com/Taichi-iskw/yt-lang/internal/repository/channel"
 	"github.com/Taichi-iskw/yt-lang/internal/repository/video"
-	"github.com/Taichi-iskw/yt-lang/internal/service"
+	"github.com/Taichi-iskw/yt-lang/internal/service/common"
+	youtubeSvc "github.com/Taichi-iskw/yt-lang/internal/service/youtube"
 )
 
 // channelCmd represents the channel command
@@ -35,7 +36,7 @@ var channelInfoCmd = &cobra.Command{
 		defer cancel()
 
 		// Create YouTube service
-		youtubeService := service.NewYouTubeService()
+		youtubeService := youtubeSvc.NewYouTubeService()
 
 		// Fetch channel info
 		channel, err := youtubeService.FetchChannelInfo(ctx, channelURL)
@@ -85,8 +86,8 @@ var channelSaveCmd = &cobra.Command{
 		videoRepo := video.NewRepository(dbPool)
 
 		// Create YouTube service with repositories
-		youtubeService := service.NewYouTubeServiceWithRepositories(
-			service.NewCmdRunner(),
+		youtubeService := youtubeSvc.NewYouTubeServiceWithRepositories(
+			common.NewCmdRunner(),
 			channelRepo,
 			videoRepo,
 		)
@@ -136,8 +137,8 @@ var channelListCmd = &cobra.Command{
 		videoRepo := video.NewRepository(dbPool)
 
 		// Create YouTube service with repositories
-		youtubeService := service.NewYouTubeServiceWithRepositories(
-			service.NewCmdRunner(),
+		youtubeService := youtubeSvc.NewYouTubeServiceWithRepositories(
+			common.NewCmdRunner(),
 			channelRepo,
 			videoRepo,
 		)

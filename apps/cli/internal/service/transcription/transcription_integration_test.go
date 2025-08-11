@@ -1,6 +1,6 @@
 //go:build integration
 
-package service
+package transcription
 
 import (
 	"context"
@@ -250,7 +250,7 @@ func TestTranscriptionService_Integration(t *testing.T) {
 // runMigrations runs database migrations for testing
 func runMigrations(ctx context.Context, dbPool *pgxpool.Pool) error {
 	// Get the migrations directory path (relative to this test file)
-	migrationsDir := filepath.Join("..", "..", "..", "..", "migrations")
+	migrationsDir := filepath.Join("..", "..", "..", "..", "..", "migrations")
 
 	// Read migration files
 	migrationFiles, err := readMigrationFiles(migrationsDir)

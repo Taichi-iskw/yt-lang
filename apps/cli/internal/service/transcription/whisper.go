@@ -1,4 +1,4 @@
-package service
+package transcription
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/Taichi-iskw/yt-lang/internal/errors"
 	"github.com/Taichi-iskw/yt-lang/internal/model"
+	"github.com/Taichi-iskw/yt-lang/internal/service/common"
 )
 
 // WhisperService defines operations for Whisper transcription
@@ -28,20 +29,20 @@ type WhisperOptions struct {
 
 // whisperService implements WhisperService using Whisper CLI
 type whisperService struct {
-	cmdRunner CmdRunner
+	cmdRunner common.CmdRunner
 	model     string // default model to use
 }
 
 // NewWhisperService creates a new WhisperService with default CmdRunner
 func NewWhisperService() WhisperService {
 	return &whisperService{
-		cmdRunner: NewCmdRunner(),
+		cmdRunner: common.NewCmdRunner(),
 		model:     "large",
 	}
 }
 
 // NewWhisperServiceWithCmdRunner creates a new WhisperService with custom CmdRunner (for testing)
-func NewWhisperServiceWithCmdRunner(cmdRunner CmdRunner, model string) WhisperService {
+func NewWhisperServiceWithCmdRunner(cmdRunner common.CmdRunner, model string) WhisperService {
 	return &whisperService{
 		cmdRunner: cmdRunner,
 		model:     model,
@@ -115,10 +116,10 @@ func (s *whisperService) TranscribeAudio(ctx context.Context, audioPath string, 
 	return &result, nil
 }
 
-// formatWhisperError provides user-friendly error messages for Whisper failures  
+// formatWhisperError provides user-friendly error messages for Whisper failures
 func (s *whisperService) formatWhisperError(err error, audioPath, language string) string {
 	errMsg := err.Error()
-	
+
 	// Check for common Whisper error patterns
 	switch {
 	case strings.Contains(errMsg, "No such file or directory") && strings.Contains(errMsg, "whisper"):

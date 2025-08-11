@@ -1,4 +1,4 @@
-package service
+package transcription
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Taichi-iskw/yt-lang/internal/errors"
+	"github.com/Taichi-iskw/yt-lang/internal/service/common"
 )
 
 // AudioDownloadService defines operations for downloading audio from videos
@@ -18,18 +19,18 @@ type AudioDownloadService interface {
 
 // audioDownloadService implements AudioDownloadService using yt-dlp
 type audioDownloadService struct {
-	cmdRunner CmdRunner
+	cmdRunner common.CmdRunner
 }
 
 // NewAudioDownloadService creates a new AudioDownloadService with default CmdRunner
 func NewAudioDownloadService() AudioDownloadService {
 	return &audioDownloadService{
-		cmdRunner: NewCmdRunner(),
+		cmdRunner: common.NewCmdRunner(),
 	}
 }
 
 // NewAudioDownloadServiceWithCmdRunner creates a new AudioDownloadService with custom CmdRunner (for testing)
-func NewAudioDownloadServiceWithCmdRunner(cmdRunner CmdRunner) AudioDownloadService {
+func NewAudioDownloadServiceWithCmdRunner(cmdRunner common.CmdRunner) AudioDownloadService {
 	return &audioDownloadService{
 		cmdRunner: cmdRunner,
 	}
@@ -119,7 +120,7 @@ func (s *audioDownloadService) findDownloadedAudio(outputDir string) (string, er
 // formatYtDlpError provides user-friendly error messages for yt-dlp failures
 func (s *audioDownloadService) formatYtDlpError(err error, videoURL string) string {
 	errMsg := err.Error()
-	
+
 	// Check for common yt-dlp error patterns
 	switch {
 	case strings.Contains(errMsg, "Video unavailable"):
