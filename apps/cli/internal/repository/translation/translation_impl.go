@@ -59,7 +59,7 @@ func (r *translationRepository) Get(ctx context.Context, id int) (*model.Transla
 }
 
 // GetByTranscriptionIDAndLanguage retrieves translation by transcription ID and target language
-func (r *translationRepository) GetByTranscriptionIDAndLanguage(ctx context.Context, transcriptionID int, targetLanguage string) (*model.Translation, error) {
+func (r *translationRepository) GetByTranscriptionIDAndLanguage(ctx context.Context, transcriptionID string, targetLanguage string) (*model.Translation, error) {
 	query := `
 		SELECT id, transcription_id, target_language, content, source, created_at
 		FROM translations
@@ -92,13 +92,13 @@ func (r *translationRepository) CreateBatch(ctx context.Context, translations []
 }
 
 // GetByTranscriptionID retrieves all translations for a transcription (placeholder implementation)
-func (r *translationRepository) GetByTranscriptionID(ctx context.Context, transcriptionID int) ([]*model.Translation, error) {
+func (r *translationRepository) GetByTranscriptionID(ctx context.Context, transcriptionID string) ([]*model.Translation, error) {
 	// TODO: implement
 	return []*model.Translation{}, nil
 }
 
 // ListByTranscriptionID retrieves translations for a transcription segment with pagination
-func (r *translationRepository) ListByTranscriptionID(ctx context.Context, transcriptionID int, limit, offset int) ([]*model.Translation, error) {
+func (r *translationRepository) ListByTranscriptionID(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error) {
 	query := `
 		SELECT id, transcription_id, target_language, content, source, created_at
 		FROM translations
@@ -143,7 +143,7 @@ func (r *translationRepository) Update(ctx context.Context, translation *model.T
 }
 
 // DeleteByTranscriptionID deletes translations by transcription ID (placeholder implementation)
-func (r *translationRepository) DeleteByTranscriptionID(ctx context.Context, transcriptionID int) error {
+func (r *translationRepository) DeleteByTranscriptionID(ctx context.Context, transcriptionID string) error {
 	// TODO: implement
 	return nil
 }

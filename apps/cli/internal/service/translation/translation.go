@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"strconv"
 	"strings"
 
@@ -25,7 +24,7 @@ type TranscriptionRepository interface {
 type TranslationRepository interface {
 	Get(ctx context.Context, id int) (*model.Translation, error)
 	Create(ctx context.Context, translation *model.Translation) error
-	ListByTranscriptionID(ctx context.Context, transcriptionID int, limit, offset int) ([]*model.Translation, error)
+	ListByTranscriptionID(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error)
 	Delete(ctx context.Context, id int) error
 }
 
@@ -145,10 +144,8 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 	}
 
 	// Step 5: Save translation to database
-	// Convert string transcription ID to numeric ID using hash
-	numericTranscriptionID := hashStringToInt(transcriptionID)
 	translation := &model.Translation{
-		TranscriptionID: numericTranscriptionID,
+		TranscriptionID: transcriptionID, // Use string UUID directly
 		TargetLanguage:  targetLang,
 		Content:         joinSegments(translatedContent),
 		Source:          "plamo",
@@ -201,14 +198,8 @@ func (s *translationService) GetTranslation(ctx context.Context, id string) (*mo
 
 // ListTranslations retrieves translations for a transcription with pagination
 func (s *translationService) ListTranslations(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error) {
-	// Convert string ID to int
-	transcriptionIDInt, err := strconv.Atoi(transcriptionID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid transcription ID: %w", err)
-	}
-
-	// Get translations from repository with pagination
-	translations, err := s.translationRepo.ListByTranscriptionID(ctx, transcriptionIDInt, limit, offset)
+	// Get translations from repository with pagination (transcriptionID is UUID string)
+	translations, err := s.translationRepo.ListByTranscriptionID(ctx, transcriptionID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list translations: %w", err)
 	}
@@ -236,14 +227,6 @@ func (s *translationService) DeleteTranslation(ctx context.Context, id string) e
 // GetPlamoService returns the PLaMo service instance
 func (s *translationService) GetPlamoService() PlamoService {
 	return s.plamoService
-}
-
-// hashStringToInt converts a string to a consistent integer using hash function
-// This is a temporary solution for handling string-to-int ID conversion
-func hashStringToInt(s string) int {
-	h := fnv.New32a()
-	h.Write([]byte(s))
-	return int(h.Sum32())
 }
 
 // parseTranslationSegments parses translation content to create translation segments

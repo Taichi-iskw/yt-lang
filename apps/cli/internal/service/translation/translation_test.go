@@ -33,7 +33,7 @@ func (m *mockTranscriptionRepo) Get(ctx context.Context, id string) (*model.Tran
 type mockTranslationRepo struct {
 	CreateFunc                func(ctx context.Context, translation *model.Translation) error
 	GetFunc                   func(ctx context.Context, id int) (*model.Translation, error)
-	ListByTranscriptionIDFunc func(ctx context.Context, transcriptionID int, limit, offset int) ([]*model.Translation, error)
+	ListByTranscriptionIDFunc func(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error)
 	DeleteFunc                func(ctx context.Context, id int) error
 }
 
@@ -51,7 +51,7 @@ func (m *mockTranslationRepo) Get(ctx context.Context, id int) (*model.Translati
 	return nil, nil
 }
 
-func (m *mockTranslationRepo) ListByTranscriptionID(ctx context.Context, transcriptionID int, limit, offset int) ([]*model.Translation, error) {
+func (m *mockTranslationRepo) ListByTranscriptionID(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error) {
 	if m.ListByTranscriptionIDFunc != nil {
 		return m.ListByTranscriptionIDFunc(ctx, transcriptionID, limit, offset)
 	}
@@ -248,7 +248,7 @@ func TestTranslationService_GetTranslation(t *testing.T) {
 				tr.GetFunc = func(ctx context.Context, id int) (*model.Translation, error) {
 					return &model.Translation{
 						ID:              123,
-						TranscriptionID: 456,
+						TranscriptionID: "456",
 						TargetLanguage:  "ja",
 						Content:         "こんにちは世界",
 						Source:          "plamo",
@@ -338,10 +338,10 @@ func TestTranslationService_ListTranslations(t *testing.T) {
 			limit:           10,
 			offset:          0,
 			setupMocks: func(tr *mockTranslationRepo) {
-				tr.ListByTranscriptionIDFunc = func(ctx context.Context, transcriptionID int, limit, offset int) ([]*model.Translation, error) {
+				tr.ListByTranscriptionIDFunc = func(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error) {
 					return []*model.Translation{
-						{ID: 1, TranscriptionID: 123, TargetLanguage: "ja", Content: "こんにちは", Source: "plamo"},
-						{ID: 2, TranscriptionID: 123, TargetLanguage: "en", Content: "hello", Source: "plamo"},
+						{ID: 1, TranscriptionID: "123", TargetLanguage: "ja", Content: "こんにちは", Source: "plamo"},
+						{ID: 2, TranscriptionID: "123", TargetLanguage: "en", Content: "hello", Source: "plamo"},
 					}, nil
 				}
 			},
@@ -354,7 +354,7 @@ func TestTranslationService_ListTranslations(t *testing.T) {
 			limit:           10,
 			offset:          0,
 			setupMocks: func(tr *mockTranslationRepo) {
-				tr.ListByTranscriptionIDFunc = func(ctx context.Context, transcriptionID int, limit, offset int) ([]*model.Translation, error) {
+				tr.ListByTranscriptionIDFunc = func(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error) {
 					return []*model.Translation{}, nil
 				}
 			},
@@ -362,24 +362,12 @@ func TestTranslationService_ListTranslations(t *testing.T) {
 			wantErr:       false,
 		},
 		{
-			name:            "invalid transcription ID",
-			transcriptionID: "invalid",
-			limit:           10,
-			offset:          0,
-			setupMocks: func(tr *mockTranslationRepo) {
-				// No setup needed - error should occur before repository call
-			},
-			expectedCount: 0,
-			wantErr:       true,
-			expectedErr:   "invalid transcription ID",
-		},
-		{
 			name:            "repository error",
 			transcriptionID: "123",
 			limit:           10,
 			offset:          0,
 			setupMocks: func(tr *mockTranslationRepo) {
-				tr.ListByTranscriptionIDFunc = func(ctx context.Context, transcriptionID int, limit, offset int) ([]*model.Translation, error) {
+				tr.ListByTranscriptionIDFunc = func(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error) {
 					return nil, errors.New("database error")
 				}
 			},

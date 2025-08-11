@@ -60,8 +60,8 @@ type TranscriptionSegment struct {
 
 // Translation represents translated transcription
 type Translation struct {
-	ID              int       `json:"id" db:"id"`
-	TranscriptionID int       `json:"transcription_id" db:"transcription_id"`
+	ID              int       `json:"id" db:"id"`                             // SERIAL PRIMARY KEY (PostgreSQL generates)
+	TranscriptionID string    `json:"transcription_id" db:"transcription_id"` // UUID referencing transcriptions.id
 	TargetLanguage  string    `json:"target_language" db:"target_language"`
 	Content         string    `json:"content" db:"content"`
 	Source          string    `json:"source" db:"source"`

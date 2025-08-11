@@ -18,13 +18,13 @@ type TranslationRepository interface {
 	CreateBatch(ctx context.Context, translations []*model.Translation) error
 
 	// GetByTranscriptionID retrieves all translations for a transcription segment
-	GetByTranscriptionID(ctx context.Context, transcriptionID int) ([]*model.Translation, error)
+	GetByTranscriptionID(ctx context.Context, transcriptionID string) ([]*model.Translation, error)
 
 	// ListByTranscriptionID retrieves translations for a transcription segment with pagination
-	ListByTranscriptionID(ctx context.Context, transcriptionID int, limit, offset int) ([]*model.Translation, error)
+	ListByTranscriptionID(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error)
 
 	// GetByTranscriptionIDAndLanguage retrieves translation for specific target language
-	GetByTranscriptionIDAndLanguage(ctx context.Context, transcriptionID int, targetLanguage string) (*model.Translation, error)
+	GetByTranscriptionIDAndLanguage(ctx context.Context, transcriptionID string, targetLanguage string) (*model.Translation, error)
 
 	// GetByVideoIDAndLanguage retrieves all translations for a video in specific target language
 	// This method joins with transcriptions table to get all translations for a video
@@ -37,7 +37,7 @@ type TranslationRepository interface {
 	Delete(ctx context.Context, id int) error
 
 	// DeleteByTranscriptionID deletes all translations for a transcription segment
-	DeleteByTranscriptionID(ctx context.Context, transcriptionID int) error
+	DeleteByTranscriptionID(ctx context.Context, transcriptionID string) error
 
 	// DeleteByVideoID deletes all translations for a video (via transcription segments)
 	DeleteByVideoID(ctx context.Context, videoID string) error

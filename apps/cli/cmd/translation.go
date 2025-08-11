@@ -117,14 +117,14 @@ func (m *mockTranslationRepo) Get(ctx context.Context, id int) (*model.Translati
 	// Mock get translation
 	return &model.Translation{
 		ID:              id,
-		TranscriptionID: 1,
+		TranscriptionID: "1",
 		TargetLanguage:  "ja",
 		Content:         "Mock translation",
 		Source:          "plamo",
 	}, nil
 }
 
-func (m *mockTranslationRepo) ListByTranscriptionID(ctx context.Context, transcriptionID int, limit, offset int) ([]*model.Translation, error) {
+func (m *mockTranslationRepo) ListByTranscriptionID(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error) {
 	// Mock list translations
 	return []*model.Translation{
 		{ID: 1, TranscriptionID: transcriptionID, TargetLanguage: "ja", Content: "Mock translation 1", Source: "plamo"},

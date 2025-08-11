@@ -21,7 +21,7 @@ func TestTranslationRepository_Create(t *testing.T) {
 		{
 			name: "successful creation",
 			translation: &model.Translation{
-				TranscriptionID: 1,
+				TranscriptionID: "1",
 				TargetLanguage:  "ja",
 				Content:         "こんにちは",
 				Source:          "plamo",
@@ -31,7 +31,7 @@ func TestTranslationRepository_Create(t *testing.T) {
 		{
 			name: "duplicate translation returns error",
 			translation: &model.Translation{
-				TranscriptionID: 1,
+				TranscriptionID: "1",
 				TargetLanguage:  "ja",
 				Content:         "こんにちは",
 				Source:          "plamo",
@@ -94,14 +94,14 @@ func TestTranslationRepository_Get(t *testing.T) {
 			id:   1,
 			setupMock: func(mock pgxmock.PgxPoolIface) {
 				rows := mock.NewRows([]string{"id", "transcription_id", "target_language", "content", "source", "created_at"}).
-					AddRow(1, 123, "ja", "こんにちは世界", "plamo", time.Now())
+					AddRow(1, "123", "ja", "こんにちは世界", "plamo", time.Now())
 				mock.ExpectQuery("SELECT (.+) FROM translations WHERE id = \\$1").
 					WithArgs(1).
 					WillReturnRows(rows)
 			},
 			want: &model.Translation{
 				ID:              1,
-				TranscriptionID: 123,
+				TranscriptionID: "123",
 				TargetLanguage:  "ja",
 				Content:         "こんにちは世界",
 				Source:          "plamo",
@@ -160,7 +160,7 @@ func TestTranslationRepository_GetByTranscriptionIDAndLanguage(t *testing.T) {
 
 	repo := NewTranslationRepository(mock)
 
-	transcriptionID := 1
+	transcriptionID := "1"
 	targetLanguage := "ja"
 
 	// Setup mock expectation
@@ -184,7 +184,7 @@ func TestTranslationRepository_GetByTranscriptionIDAndLanguage(t *testing.T) {
 func TestTranslationRepository_ListByTranscriptionID(t *testing.T) {
 	tests := []struct {
 		name            string
-		transcriptionID int
+		transcriptionID string
 		limit           int
 		offset          int
 		setupMock       func(pgxmock.PgxPoolIface)
@@ -194,15 +194,15 @@ func TestTranslationRepository_ListByTranscriptionID(t *testing.T) {
 	}{
 		{
 			name:            "successful list with pagination",
-			transcriptionID: 123,
+			transcriptionID: "123",
 			limit:           10,
 			offset:          0,
 			setupMock: func(mock pgxmock.PgxPoolIface) {
 				rows := mock.NewRows([]string{"id", "transcription_id", "target_language", "content", "source", "created_at"}).
-					AddRow(1, 123, "ja", "こんにちは", "plamo", time.Now()).
-					AddRow(2, 123, "en", "hello", "plamo", time.Now())
+					AddRow(1, "123", "ja", "こんにちは", "plamo", time.Now()).
+					AddRow(2, "123", "en", "hello", "plamo", time.Now())
 				mock.ExpectQuery("SELECT (.+) FROM translations WHERE transcription_id = \\$1 ORDER BY created_at DESC LIMIT \\$2 OFFSET \\$3").
-					WithArgs(123, 10, 0).
+					WithArgs("123", 10, 0).
 					WillReturnRows(rows)
 			},
 			expectedCount: 2,
@@ -210,13 +210,13 @@ func TestTranslationRepository_ListByTranscriptionID(t *testing.T) {
 		},
 		{
 			name:            "empty result",
-			transcriptionID: 999,
+			transcriptionID: "999",
 			limit:           10,
 			offset:          0,
 			setupMock: func(mock pgxmock.PgxPoolIface) {
 				rows := mock.NewRows([]string{"id", "transcription_id", "target_language", "content", "source", "created_at"})
 				mock.ExpectQuery("SELECT (.+) FROM translations WHERE transcription_id = \\$1 ORDER BY created_at DESC LIMIT \\$2 OFFSET \\$3").
-					WithArgs(999, 10, 0).
+					WithArgs("999", 10, 0).
 					WillReturnRows(rows)
 			},
 			expectedCount: 0,
@@ -224,12 +224,12 @@ func TestTranslationRepository_ListByTranscriptionID(t *testing.T) {
 		},
 		{
 			name:            "database error",
-			transcriptionID: 123,
+			transcriptionID: "123",
 			limit:           10,
 			offset:          0,
 			setupMock: func(mock pgxmock.PgxPoolIface) {
 				mock.ExpectQuery("SELECT (.+) FROM translations WHERE transcription_id = \\$1 ORDER BY created_at DESC LIMIT \\$2 OFFSET \\$3").
-					WithArgs(123, 10, 0).
+					WithArgs("123", 10, 0).
 					WillReturnError(errors.New("database connection failed"))
 			},
 			expectedCount: 0,
