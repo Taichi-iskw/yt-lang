@@ -12,7 +12,7 @@ import (
 
 func TestTextFormatter(t *testing.T) {
 	formatter := &TextFormatter{}
-	
+
 	trans := &model.Translation{
 		ID:             1,
 		TargetLanguage: "ja",
@@ -20,15 +20,15 @@ func TestTextFormatter(t *testing.T) {
 		Source:         "plamo",
 		CreatedAt:      time.Now(),
 	}
-	
+
 	segments := []*TranslationSegment{
 		{Text: "Hello", TranslatedText: "こんにちは"},
 		{Text: "World", TranslatedText: "世界"},
 	}
-	
+
 	output, err := formatter.Format(trans, segments)
 	require.NoError(t, err)
-	
+
 	assert.Contains(t, output, "Translation ID: 1")
 	assert.Contains(t, output, "Target Language: ja")
 	assert.Contains(t, output, "Source: plamo")
@@ -40,7 +40,7 @@ func TestTextFormatter(t *testing.T) {
 
 func TestJSONFormatter(t *testing.T) {
 	formatter := &JSONFormatter{}
-	
+
 	trans := &model.Translation{
 		ID:             1,
 		TargetLanguage: "ja",
@@ -48,10 +48,10 @@ func TestJSONFormatter(t *testing.T) {
 		Source:         "plamo",
 		CreatedAt:      time.Now(),
 	}
-	
+
 	output, err := formatter.Format(trans, nil)
 	require.NoError(t, err)
-	
+
 	assert.Contains(t, output, `"id": 1`)
 	assert.Contains(t, output, `"target_language": "ja"`)
 	assert.Contains(t, output, `"content": "テスト"`)
@@ -60,33 +60,33 @@ func TestJSONFormatter(t *testing.T) {
 
 func TestSRTFormatter(t *testing.T) {
 	formatter := &SRTFormatter{}
-	
+
 	trans := &model.Translation{
 		ID:             1,
 		TargetLanguage: "ja",
 		Content:        "こんにちは世界",
 		Source:         "plamo",
 	}
-	
+
 	t.Run("with segments", func(t *testing.T) {
 		segments := []*TranslationSegment{
 			{Text: "Hello", TranslatedText: "こんにちは"},
 			{Text: "World", TranslatedText: "世界"},
 		}
-		
+
 		output, err := formatter.Format(trans, segments)
 		require.NoError(t, err)
-		
+
 		lines := strings.Split(output, "\n")
 		assert.Equal(t, "1", lines[0])
 		assert.Contains(t, lines[1], "-->")
 		assert.Equal(t, "こんにちは", lines[2])
-		
+
 		assert.Equal(t, "2", lines[4])
 		assert.Contains(t, lines[5], "-->")
 		assert.Equal(t, "世界", lines[6])
 	})
-	
+
 	t.Run("without segments", func(t *testing.T) {
 		_, err := formatter.Format(trans, nil)
 		require.Error(t, err)
@@ -106,11 +106,11 @@ func TestGetFormatter(t *testing.T) {
 		{"srt", "*translation.SRTFormatter", false},
 		{"invalid", "", true},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.format, func(t *testing.T) {
 			formatter, err := GetFormatter(tt.format)
-			
+
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

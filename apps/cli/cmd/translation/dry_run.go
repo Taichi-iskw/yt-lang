@@ -32,17 +32,17 @@ func (s *DryRunService) SimulateTranslation(ctx context.Context, transcriptionID
 	if err != nil {
 		return nil, fmt.Errorf("failed to get segments: %w", err)
 	}
-	
+
 	if len(segments) == 0 {
 		return nil, fmt.Errorf("no segments found for transcription %s", transcriptionID)
 	}
-	
+
 	// Create batches
 	batches, err := s.batchProcessor.CreateBatches(segments, 7000)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create batches: %w", err)
 	}
-	
+
 	// Calculate statistics
 	totalSegments := len(segments)
 	totalBatches := len(batches)
@@ -50,10 +50,10 @@ func (s *DryRunService) SimulateTranslation(ctx context.Context, transcriptionID
 	for _, seg := range segments {
 		totalChars += len(seg.Text)
 	}
-	
+
 	// Estimate tokens
 	estimatedTokens := totalChars / 4 // Rough estimate for English
-	
+
 	return &DryRunResult{
 		TranscriptionID:  transcriptionID,
 		TargetLanguage:   targetLang,
@@ -99,13 +99,13 @@ Batch Details:
 		result.TotalSegments, result.TotalCharacters,
 		result.EstimatedTokens, result.TotalBatches,
 		result.EstimatedAPICall)
-	
+
 	for i, batch := range result.Batches {
 		output += fmt.Sprintf("  Batch %d: %d segments, separator: %s\n",
 			i+1, len(batch.Segments), batch.Separator)
 	}
-	
+
 	output += "\nThis is a dry run - no actual translation will be performed."
-	
+
 	return output
 }

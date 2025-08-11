@@ -36,10 +36,10 @@ func (s *PlamoServerService) StartServer(ctx context.Context) error {
 	// Start PLaMo server with default settings
 	args := []string{
 		"server",
-		"--backend-type", "mlx",      // Use MLX backend for Apple Silicon
-		"--precision", "4bit",        // Use 4bit precision for speed
-		"--no-stream",                // Batch processing mode
-		"--interactive",              // Interactive mode for continuous translation
+		"--backend-type", "mlx", // Use MLX backend for Apple Silicon
+		"--precision", "4bit", // Use 4bit precision for speed
+		"--no-stream",   // Batch processing mode
+		"--interactive", // Interactive mode for continuous translation
 	}
 
 	// Use CmdRunner to start server (for testing compatibility)

@@ -62,7 +62,7 @@ func TestTranslationService_CreateTranslation(t *testing.T) {
 						{ID: "seg-2", TranscriptionID: "trans-123", Text: "Good morning"},
 					}, nil
 				}
-				
+
 				// Setup batch processor
 				bp.CreateBatchesFunc = func(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error) {
 					return []SegmentBatch{
@@ -73,12 +73,12 @@ func TestTranslationService_CreateTranslation(t *testing.T) {
 						},
 					}, nil
 				}
-				
+
 				// Setup PLaMo translation
 				pr.RunFunc = func(ctx context.Context, name string, args ...string) ([]byte, error) {
 					return []byte("こんにちは世界__おはようございます"), nil
 				}
-				
+
 				// Setup split translation
 				bp.SplitTranslationFunc = func(batch SegmentBatch, translation string) ([]*TranslationSegment, error) {
 					return []*TranslationSegment{
@@ -86,7 +86,7 @@ func TestTranslationService_CreateTranslation(t *testing.T) {
 						{Text: "Good morning", TranslatedText: "おはようございます"},
 					}, nil
 				}
-				
+
 				// Setup repository save
 				tlr.CreateFunc = func(ctx context.Context, translation *model.Translation) error {
 					return nil
@@ -116,17 +116,17 @@ func TestTranslationService_CreateTranslation(t *testing.T) {
 						{ID: "seg-1", Text: "Hello"},
 					}, nil
 				}
-				
+
 				bp.CreateBatchesFunc = func(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error) {
 					return []SegmentBatch{
 						{Segments: segments, CombinedText: "Hello", Separator: "__"},
 					}, nil
 				}
-				
+
 				pr.RunFunc = func(ctx context.Context, name string, args ...string) ([]byte, error) {
 					return nil, errors.New("PLaMo service unavailable")
 				}
-				
+
 				// Fallback also fails
 				bp.ProcessWithFallbackFunc = func(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error) {
 					return nil, errors.New("fallback failed")
@@ -144,14 +144,14 @@ func TestTranslationService_CreateTranslation(t *testing.T) {
 			translationRepo := &mockTranslationRepo{}
 			plamoService := NewPlamoService(&MockCmdRunner{})
 			batchProcessor := &mockBatchProcessor{}
-			
+
 			// Setup mocks
 			if tt.setupMocks != nil {
 				cmdRunner := &MockCmdRunner{}
 				plamoService = NewPlamoService(cmdRunner)
 				tt.setupMocks(transcriptionRepo, translationRepo, cmdRunner, batchProcessor)
 			}
-			
+
 			// Create service
 			service := NewTranslationService(
 				transcriptionRepo,
@@ -159,11 +159,11 @@ func TestTranslationService_CreateTranslation(t *testing.T) {
 				plamoService,
 				batchProcessor,
 			)
-			
+
 			// Execute
 			ctx := context.Background()
 			translation, err := service.CreateTranslation(ctx, tt.transcriptionID, tt.targetLang)
-			
+
 			// Assert
 			if tt.wantErr {
 				require.Error(t, err)
@@ -182,9 +182,9 @@ func TestTranslationService_CreateTranslation(t *testing.T) {
 
 // Mock batch processor
 type mockBatchProcessor struct {
-	CreateBatchesFunc        func(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error)
-	SplitTranslationFunc     func(batch SegmentBatch, translation string) ([]*TranslationSegment, error)
-	ProcessWithFallbackFunc  func(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error)
+	CreateBatchesFunc       func(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error)
+	SplitTranslationFunc    func(batch SegmentBatch, translation string) ([]*TranslationSegment, error)
+	ProcessWithFallbackFunc func(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error)
 }
 
 func (m *mockBatchProcessor) CreateBatches(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error) {

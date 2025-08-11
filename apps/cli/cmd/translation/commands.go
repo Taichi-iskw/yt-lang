@@ -41,19 +41,19 @@ func NewCreateCommand(service translation.TranslationService) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			transcriptionID := args[0]
-			
+
 			// Get flags
 			targetLang, _ := cmd.Flags().GetString("target-lang")
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
 			useServer, _ := cmd.Flags().GetBool("use-server")
-			
+
 			if dryRun {
 				cmd.Println("DRY RUN: Would create translation for transcription", transcriptionID, "to", targetLang)
 				return nil
 			}
-			
+
 			ctx := context.Background()
-			
+
 			// Start PLaMo server if server mode is enabled
 			if useServer {
 				plamoService := service.GetPlamoService()
@@ -61,7 +61,7 @@ func NewCreateCommand(service translation.TranslationService) *cobra.Command {
 				if err := plamoService.StartServer(ctx); err != nil {
 					return fmt.Errorf("failed to start PLaMo server: %w", err)
 				}
-				
+
 				// Ensure server is stopped when command completes
 				defer func() {
 					cmd.Println("Stopping PLaMo server...")
@@ -70,24 +70,24 @@ func NewCreateCommand(service translation.TranslationService) *cobra.Command {
 					}
 				}()
 			}
-			
+
 			// Create translation
 			translation, err := service.CreateTranslation(ctx, transcriptionID, targetLang)
 			if err != nil {
 				return fmt.Errorf("failed to create translation: %w", err)
 			}
-			
-			cmd.Printf("Translation created successfully (ID: %d, Language: %s)\n", 
+
+			cmd.Printf("Translation created successfully (ID: %d, Language: %s)\n",
 				translation.ID, translation.TargetLanguage)
 			return nil
 		},
 	}
-	
+
 	// Add flags
 	cmd.Flags().StringVar(&targetLang, "target-lang", "ja", "Target language for translation")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Perform a dry run without saving to database")
 	cmd.Flags().Bool("use-server", true, "Use PLaMo server mode for better performance with multiple batches")
-	
+
 	return cmd
 }
 
@@ -99,17 +99,17 @@ func NewGetCommand(service translation.TranslationService) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			translationID := args[0]
-			
+
 			// Get flags
 			format, _ := cmd.Flags().GetString("format")
-			
+
 			// Get translation
 			ctx := context.Background()
 			translation, segments, err := service.GetTranslation(ctx, translationID)
 			if err != nil {
 				return fmt.Errorf("failed to get translation: %w", err)
 			}
-			
+
 			// Format output
 			switch format {
 			case "json":
@@ -134,14 +134,14 @@ func NewGetCommand(service translation.TranslationService) *cobra.Command {
 					cmd.Println(translation.Content)
 				}
 			}
-			
+
 			return nil
 		},
 	}
-	
+
 	// Add flags
 	cmd.Flags().StringVar(&format, "format", "text", "Output format (text, json, srt)")
-	
+
 	return cmd
 }
 
@@ -157,7 +157,7 @@ func NewListCommand(service translation.TranslationService) *cobra.Command {
 			return nil
 		},
 	}
-	
+
 	return cmd
 }
 
@@ -173,9 +173,9 @@ func NewDeleteCommand(service translation.TranslationService) *cobra.Command {
 			return nil
 		},
 	}
-	
+
 	// Add flags
 	cmd.Flags().Bool("force", false, "Force deletion without confirmation")
-	
+
 	return cmd
 }

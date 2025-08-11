@@ -109,7 +109,7 @@ func TestCreateCommand(t *testing.T) {
 
 			// Create command with mock
 			cmd := NewCreateCommand(mockService)
-			
+
 			// Set flags
 			cmd.Flags().Set("target-lang", tt.targetLang)
 			if tt.dryRun {
@@ -120,7 +120,7 @@ func TestCreateCommand(t *testing.T) {
 			var buf bytes.Buffer
 			cmd.SetOut(&buf)
 			cmd.SetErr(&buf)
-			
+
 			// Set args
 			cmd.SetArgs(tt.args)
 
@@ -156,13 +156,13 @@ func TestGetCommand(t *testing.T) {
 			setupMock: func(m *mockTranslationService) {
 				m.GetTranslationFunc = func(ctx context.Context, id string) (*model.Translation, []*translation.TranslationSegment, error) {
 					return &model.Translation{
-						ID:             1,
-						TargetLanguage: "ja",
-						Content:        "こんにちは世界",
-					}, []*translation.TranslationSegment{
-						{Text: "Hello", TranslatedText: "こんにちは"},
-						{Text: "World", TranslatedText: "世界"},
-					}, nil
+							ID:             1,
+							TargetLanguage: "ja",
+							Content:        "こんにちは世界",
+						}, []*translation.TranslationSegment{
+							{Text: "Hello", TranslatedText: "こんにちは"},
+							{Text: "World", TranslatedText: "世界"},
+						}, nil
 				}
 			},
 			expectedOutput: "こんにちは",
@@ -203,7 +203,7 @@ func TestGetCommand(t *testing.T) {
 
 			// Create command with mock
 			cmd := NewGetCommand(mockService)
-			
+
 			// Set flags
 			cmd.Flags().Set("format", tt.format)
 
@@ -211,7 +211,7 @@ func TestGetCommand(t *testing.T) {
 			var buf bytes.Buffer
 			cmd.SetOut(&buf)
 			cmd.SetErr(&buf)
-			
+
 			// Set args
 			cmd.SetArgs(tt.args)
 

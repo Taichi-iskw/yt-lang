@@ -151,7 +151,7 @@ func (bp *batchProcessor) ProcessWithFallback(segments []*model.TranscriptionSeg
 	// Fallback strategy: try different separators, then individual translation
 	// This is a placeholder implementation
 	var results []*TranslationSegment
-	
+
 	for _, segment := range segments {
 		result := &TranslationSegment{
 			ID:              segment.ID,
@@ -162,6 +162,6 @@ func (bp *batchProcessor) ProcessWithFallback(segments []*model.TranscriptionSeg
 		}
 		results = append(results, result)
 	}
-	
+
 	return results, nil
 }

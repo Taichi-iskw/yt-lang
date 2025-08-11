@@ -75,20 +75,20 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(segments) == 0 {
 		return nil, errors.New("no segments found")
 	}
-	
+
 	// Step 2: Create batches for efficient translation
 	batches, err := s.batchProcessor.CreateBatches(segments, defaultMaxTokens)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Step 3: Optimize for batch translation - start server once for multiple batches
 	sourceLanguage := "en" // Default source language - should be detected from transcription
-	
+
 	// If we have multiple batches, start the server once for better performance
 	if len(batches) > 1 {
 		if err := s.plamoService.StartServer(ctx); err != nil {
@@ -97,10 +97,10 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 		}
 		// Note: We don't defer StopServer here as it's managed at CLI level
 	}
-	
+
 	// Step 3: Translate each batch
 	var allTranslatedSegments []*TranslationSegment
-	
+
 	for _, batch := range batches {
 		// Translate batch
 		translatedText, err := s.plamoService.Translate(ctx, batch.CombinedText, sourceLanguage, targetLang)
@@ -113,7 +113,7 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 			allTranslatedSegments = append(allTranslatedSegments, fallbackSegments...)
 			continue
 		}
-		
+
 		// Split translated text back into segments
 		translatedSegments, err := s.batchProcessor.SplitTranslation(batch, translatedText)
 		if err != nil {
@@ -125,16 +125,16 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 			allTranslatedSegments = append(allTranslatedSegments, fallbackSegments...)
 			continue
 		}
-		
+
 		allTranslatedSegments = append(allTranslatedSegments, translatedSegments...)
 	}
-	
+
 	// Step 4: Combine all translated segments into content
 	var translatedContent []string
 	for _, seg := range allTranslatedSegments {
 		translatedContent = append(translatedContent, seg.TranslatedText)
 	}
-	
+
 	// Step 5: Save translation to database
 	translation := &model.Translation{
 		TranscriptionID: 1, // TODO: Convert string ID to int
@@ -142,12 +142,12 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 		Content:         joinSegments(translatedContent),
 		Source:          "plamo",
 	}
-	
+
 	err = s.translationRepo.Create(ctx, translation)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return translation, nil
 }
 

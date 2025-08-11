@@ -38,23 +38,23 @@ func (s *plamoService) Translate(ctx context.Context, text string, fromLang, toL
 	// Map language codes to PLaMo format
 	fromLangPLaMo := mapLanguageToPLaMo(fromLang)
 	toLangPLaMo := mapLanguageToPLaMo(toLang)
-	
+
 	if fromLangPLaMo == "" || toLangPLaMo == "" {
 		return "", errors.New("unsupported language")
 	}
-	
+
 	// Execute PLaMo CLI command in simple mode (not server)
 	args := []string{
 		"--from", fromLangPLaMo,
 		"--to", toLangPLaMo,
 		"--input", text,
 	}
-	
+
 	output, err := s.cmdRunner.Run(ctx, "plamo-translate", args...)
 	if err != nil {
 		return "", errors.New("PLaMo CLI execution failed: " + err.Error())
 	}
-	
+
 	return strings.TrimSpace(string(output)), nil
 }
 
