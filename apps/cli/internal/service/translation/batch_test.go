@@ -117,7 +117,9 @@ func TestBatchProcessor_SplitTranslation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			processor := NewBatchProcessor()
 
-			segments, err := processor.SplitTranslation(tt.batch, tt.translation)
+			// Use the internal method for testing
+		bp := processor.(*batchProcessor)
+		segments, err := bp.splitAndValidateTranslation(tt.batch, tt.translation)
 
 			if tt.wantErr {
 				require.Error(t, err)

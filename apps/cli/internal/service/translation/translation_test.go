@@ -48,8 +48,8 @@ func TestTranslationService_CreateTranslation(t *testing.T) {
 					return []byte("こんにちは世界__おはようございます"), nil
 				}
 
-				// Setup split translation
-				bp.SplitTranslationFunc = func(batch SegmentBatch, translation string) ([]*TranslationSegment, error) {
+				// Setup translation with new implementation
+				bp.TranslateBatchWithFallbackFunc = func(batch SegmentBatch, plamoService PlamoService, ctx context.Context, sourceLang, targetLang string) ([]*TranslationSegment, error) {
 					return []*TranslationSegment{
 						{Text: "Hello world", TranslatedText: "こんにちは世界"},
 						{Text: "Good morning", TranslatedText: "おはようございます"},
@@ -92,17 +92,13 @@ func TestTranslationService_CreateTranslation(t *testing.T) {
 					}, nil
 				}
 
-				pr.RunFunc = func(ctx context.Context, name string, args ...string) ([]byte, error) {
-					return nil, errors.New("PLaMo service unavailable")
-				}
-
-				// Fallback also fails
-				bp.ProcessWithFallbackFunc = func(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error) {
-					return nil, errors.New("fallback failed")
+				// Translation fails
+				bp.TranslateBatchWithFallbackFunc = func(batch SegmentBatch, plamoService PlamoService, ctx context.Context, sourceLang, targetLang string) ([]*TranslationSegment, error) {
+					return nil, errors.New("all translation strategies failed")
 				}
 			},
 			wantErr:    true,
-			errMessage: "PLaMo service unavailable",
+			errMessage: "batch translation failed",
 		},
 	}
 

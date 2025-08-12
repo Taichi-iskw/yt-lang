@@ -31,6 +31,7 @@ func (m *mockTranscriptionRepo) Get(ctx context.Context, id string) (*model.Tran
 // mockTranslationRepo mocks TranslationRepository
 type mockTranslationRepo struct {
 	CreateFunc                func(ctx context.Context, translation *model.Translation) error
+	CreateBatchFunc           func(ctx context.Context, translations []*model.Translation) error
 	GetFunc                   func(ctx context.Context, id int) (*model.Translation, error)
 	ListByTranscriptionIDFunc func(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error)
 	DeleteFunc                func(ctx context.Context, id int) error
@@ -39,6 +40,13 @@ type mockTranslationRepo struct {
 func (m *mockTranslationRepo) Create(ctx context.Context, translation *model.Translation) error {
 	if m.CreateFunc != nil {
 		return m.CreateFunc(ctx, translation)
+	}
+	return nil
+}
+
+func (m *mockTranslationRepo) CreateBatch(ctx context.Context, translations []*model.Translation) error {
+	if m.CreateBatchFunc != nil {
+		return m.CreateBatchFunc(ctx, translations)
 	}
 	return nil
 }
@@ -69,9 +77,8 @@ type Batch = SegmentBatch
 
 // mockBatchProcessor mocks BatchProcessor interface
 type mockBatchProcessor struct {
-	CreateBatchesFunc       func(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error)
-	SplitTranslationFunc    func(batch SegmentBatch, translatedText string) ([]*TranslationSegment, error)
-	ProcessWithFallbackFunc func(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error)
+	CreateBatchesFunc                func(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error)
+	TranslateBatchWithFallbackFunc   func(batch SegmentBatch, plamoService PlamoService, ctx context.Context, sourceLang, targetLang string) ([]*TranslationSegment, error)
 }
 
 func (m *mockBatchProcessor) CreateBatches(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error) {
@@ -81,24 +88,17 @@ func (m *mockBatchProcessor) CreateBatches(segments []*model.TranscriptionSegmen
 	return []SegmentBatch{}, nil
 }
 
-func (m *mockBatchProcessor) SplitTranslation(batch SegmentBatch, translatedText string) ([]*TranslationSegment, error) {
-	if m.SplitTranslationFunc != nil {
-		return m.SplitTranslationFunc(batch, translatedText)
-	}
-	return []*TranslationSegment{}, nil
-}
-
-func (m *mockBatchProcessor) ProcessWithFallback(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error) {
-	if m.ProcessWithFallbackFunc != nil {
-		return m.ProcessWithFallbackFunc(segments)
+func (m *mockBatchProcessor) TranslateBatchWithFallback(batch SegmentBatch, plamoService PlamoService, ctx context.Context, sourceLang, targetLang string) ([]*TranslationSegment, error) {
+	if m.TranslateBatchWithFallbackFunc != nil {
+		return m.TranslateBatchWithFallbackFunc(batch, plamoService, ctx, sourceLang, targetLang)
 	}
 	// Simple mock implementation
-	result := make([]*TranslationSegment, len(segments))
-	for i, seg := range segments {
+	result := make([]*TranslationSegment, len(batch.Segments))
+	for i, seg := range batch.Segments {
 		result[i] = &TranslationSegment{
 			SegmentIndex:   i,
 			Text:           seg.Text,
-			TranslatedText: "fallback: " + seg.Text,
+			TranslatedText: "translated: " + seg.Text,
 		}
 	}
 	return result, nil

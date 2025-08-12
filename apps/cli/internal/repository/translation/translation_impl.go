@@ -103,7 +103,37 @@ func (r *translationRepository) Delete(ctx context.Context, id int) error {
 
 // CreateBatch creates multiple translations (placeholder implementation)
 func (r *translationRepository) CreateBatch(ctx context.Context, translations []*model.Translation) error {
-	// TODO: implement batch insert
+	if len(translations) == 0 {
+		return nil
+	}
+
+	// Prepare data for COPY FROM
+	rows := make([][]interface{}, len(translations))
+	for i, t := range translations {
+		rows[i] = []interface{}{
+			t.TranscriptionID,
+			t.TargetLanguage,
+			t.Content,
+			t.Source,
+		}
+	}
+
+	// Use CopyFrom for efficient bulk insert
+	columns := []string{"transcription_id", "target_language", "content", "source"}
+	count, err := r.pool.CopyFrom(
+		ctx,
+		pgx.Identifier{"translations"},
+		columns,
+		pgx.CopyFromRows(rows),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	// Optionally, you can log the number of rows inserted
+	_ = count
+
 	return nil
 }
 

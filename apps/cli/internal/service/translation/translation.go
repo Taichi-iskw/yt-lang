@@ -24,6 +24,7 @@ type TranscriptionRepository interface {
 type TranslationRepository interface {
 	Get(ctx context.Context, id int) (*model.Translation, error)
 	Create(ctx context.Context, translation *model.Translation) error
+	CreateBatch(ctx context.Context, translations []*model.Translation) error
 	ListByTranscriptionID(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error)
 	Delete(ctx context.Context, id int) error
 }
@@ -93,7 +94,6 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("batches", batches)
 
 	// Step 3: Optimize for batch translation - start server once for multiple batches
 	sourceLanguage := "en" // Default source language - should be detected from transcription
@@ -107,55 +107,37 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 		// Note: We don't defer StopServer here as it's managed at CLI level
 	}
 
-	// Step 3: Translate each batch
+	// Step 4: Translate each batch with fallback strategy
 	var allTranslatedSegments []*TranslationSegment
 
 	for _, batch := range batches {
-		// Translate batch
-		translatedText, err := s.plamoService.Translate(ctx, batch.CombinedText, sourceLanguage, targetLang)
-		fmt.Println("translatedText", translatedText)
+		translatedSegments, err := s.batchProcessor.TranslateBatchWithFallback(
+			batch, s.plamoService, ctx, sourceLanguage, targetLang,
+		)
 		if err != nil {
-			// Try fallback strategy if translation fails
-			fallbackSegments, fallbackErr := s.batchProcessor.ProcessWithFallback(batch.Segments)
-			if fallbackErr != nil {
-				return nil, err // Return original error
-			}
-			allTranslatedSegments = append(allTranslatedSegments, fallbackSegments...)
-			continue
-		}
-
-		// Split translated text back into segments
-		translatedSegments, err := s.batchProcessor.SplitTranslation(batch, translatedText)
-		if err != nil {
-			// Try fallback strategy if split fails
-			fallbackSegments, fallbackErr := s.batchProcessor.ProcessWithFallback(batch.Segments)
-			if fallbackErr != nil {
-				return nil, err // Return original error
-			}
-			allTranslatedSegments = append(allTranslatedSegments, fallbackSegments...)
-			continue
+			return nil, fmt.Errorf("batch translation failed: %w", err)
 		}
 
 		allTranslatedSegments = append(allTranslatedSegments, translatedSegments...)
 	}
 
-	// Step 4: Combine all translated segments into content
-	var translatedContent []string
+	// Step 5: Combine all segments into a single translation
+	var translatedTexts []string
 	for _, seg := range allTranslatedSegments {
-		translatedContent = append(translatedContent, seg.TranslatedText)
+		translatedTexts = append(translatedTexts, seg.TranslatedText)
 	}
 
-	// Step 5: Save translation to database
 	translation := &model.Translation{
-		TranscriptionID: transcriptionID, // Use string UUID directly
+		TranscriptionID: transcriptionID,
 		TargetLanguage:  targetLang,
-		Content:         joinSegments(translatedContent),
+		Content:         joinSegments(translatedTexts),
 		Source:          "plamo",
 	}
 
+	// Step 6: Save the translation
 	err = s.translationRepo.Create(ctx, translation)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to save translation: %w", err)
 	}
 
 	return translation, nil

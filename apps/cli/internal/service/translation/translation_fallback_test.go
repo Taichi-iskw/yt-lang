@@ -2,7 +2,6 @@ package translation
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/Taichi-iskw/yt-lang/internal/model"
@@ -28,8 +27,7 @@ func TestTranslationService_FallbackStrategy(t *testing.T) {
 					}, nil
 				}
 
-				// First attempt with "__" fails on split
-				callCount := 0
+				// Setup batches
 				bp.CreateBatchesFunc = func(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error) {
 					return []SegmentBatch{
 						{
@@ -40,30 +38,8 @@ func TestTranslationService_FallbackStrategy(t *testing.T) {
 					}, nil
 				}
 
-				pr.RunFunc = func(ctx context.Context, name string, args ...string) ([]byte, error) {
-					callCount++
-					if callCount == 1 {
-						// First translation removes separator
-						return []byte("こんにちは世界"), nil
-					}
-					// Second attempt with different separator
-					return []byte("こんにちは<<<SEP>>>世界"), nil
-				}
-
-				bp.SplitTranslationFunc = func(batch SegmentBatch, translation string) ([]*TranslationSegment, error) {
-					if batch.Separator == "__" && translation == "こんにちは世界" {
-						// Separator mismatch - trigger fallback
-						return nil, errors.New("separator count mismatch")
-					}
-					// Success with <<<SEP>>>
-					return []*TranslationSegment{
-						{Text: "Hello", TranslatedText: "こんにちは"},
-						{Text: "World", TranslatedText: "世界"},
-					}, nil
-				}
-
-				// Fallback processor recreates batch with new separator
-				bp.ProcessWithFallbackFunc = func(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error) {
+				// TranslateBatchWithFallback succeeds on second attempt (<<<SEP>>>)
+				bp.TranslateBatchWithFallbackFunc = func(batch SegmentBatch, plamoService PlamoService, ctx context.Context, sourceLang, targetLang string) ([]*TranslationSegment, error) {
 					// Simulate successful fallback processing
 					return []*TranslationSegment{
 						{Text: "Hello", TranslatedText: "こんにちは"},
@@ -73,6 +49,7 @@ func TestTranslationService_FallbackStrategy(t *testing.T) {
 			},
 			wantErr: false,
 			verify: func(t *testing.T, translation *model.Translation) {
+				// All segments are combined into one translation
 				assert.Contains(t, translation.Content, "こんにちは")
 				assert.Contains(t, translation.Content, "世界")
 			},
@@ -96,17 +73,8 @@ func TestTranslationService_FallbackStrategy(t *testing.T) {
 					}, nil
 				}
 
-				// All batch attempts fail
-				pr.RunFunc = func(ctx context.Context, name string, args ...string) ([]byte, error) {
-					return []byte("複雑なテキスト"), nil
-				}
-
-				bp.SplitTranslationFunc = func(batch SegmentBatch, translation string) ([]*TranslationSegment, error) {
-					return nil, errors.New("unable to split")
-				}
-
-				// Fallback to individual processing succeeds
-				bp.ProcessWithFallbackFunc = func(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error) {
+				// TranslateBatchWithFallback succeeds with individual translation fallback
+				bp.TranslateBatchWithFallbackFunc = func(batch SegmentBatch, plamoService PlamoService, ctx context.Context, sourceLang, targetLang string) ([]*TranslationSegment, error) {
 					return []*TranslationSegment{
 						{Text: "Complex text", TranslatedText: "複雑なテキスト"},
 					}, nil
@@ -136,24 +104,9 @@ func TestTranslationService_FallbackStrategy(t *testing.T) {
 					}, nil
 				}
 
-				// First call fails, second succeeds (retry)
-				callCount := 0
-				pr.RunFunc = func(ctx context.Context, name string, args ...string) ([]byte, error) {
-					callCount++
-					if callCount == 1 {
-						return nil, errors.New("PLaMo service temporarily unavailable")
-					}
-					return []byte("テスト"), nil
-				}
-
-				bp.SplitTranslationFunc = func(batch SegmentBatch, translation string) ([]*TranslationSegment, error) {
-					return []*TranslationSegment{
-						{Text: "Test", TranslatedText: "テスト"},
-					}, nil
-				}
-
-				bp.ProcessWithFallbackFunc = func(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error) {
-					// Retry logic built into ProcessWithFallback
+				// TranslateBatchWithFallback handles retry internally
+				bp.TranslateBatchWithFallbackFunc = func(batch SegmentBatch, plamoService PlamoService, ctx context.Context, sourceLang, targetLang string) ([]*TranslationSegment, error) {
+					// Retry logic built into TranslateBatchWithFallback
 					return []*TranslationSegment{
 						{Text: "Test", TranslatedText: "テスト"},
 					}, nil
@@ -211,9 +164,8 @@ func TestTranslationService_FallbackStrategy(t *testing.T) {
 
 // Mock batch processor with fallback support
 type mockBatchProcessorWithFallback struct {
-	CreateBatchesFunc       func(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error)
-	SplitTranslationFunc    func(batch SegmentBatch, translation string) ([]*TranslationSegment, error)
-	ProcessWithFallbackFunc func(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error)
+	CreateBatchesFunc              func(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error)
+	TranslateBatchWithFallbackFunc func(batch SegmentBatch, plamoService PlamoService, ctx context.Context, sourceLang, targetLang string) ([]*TranslationSegment, error)
 }
 
 func (m *mockBatchProcessorWithFallback) CreateBatches(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error) {
@@ -223,16 +175,9 @@ func (m *mockBatchProcessorWithFallback) CreateBatches(segments []*model.Transcr
 	return nil, nil
 }
 
-func (m *mockBatchProcessorWithFallback) SplitTranslation(batch SegmentBatch, translation string) ([]*TranslationSegment, error) {
-	if m.SplitTranslationFunc != nil {
-		return m.SplitTranslationFunc(batch, translation)
-	}
-	return nil, nil
-}
-
-func (m *mockBatchProcessorWithFallback) ProcessWithFallback(segments []*model.TranscriptionSegment) ([]*TranslationSegment, error) {
-	if m.ProcessWithFallbackFunc != nil {
-		return m.ProcessWithFallbackFunc(segments)
+func (m *mockBatchProcessorWithFallback) TranslateBatchWithFallback(batch SegmentBatch, plamoService PlamoService, ctx context.Context, sourceLang, targetLang string) ([]*TranslationSegment, error) {
+	if m.TranslateBatchWithFallbackFunc != nil {
+		return m.TranslateBatchWithFallbackFunc(batch, plamoService, ctx, sourceLang, targetLang)
 	}
 	return nil, nil
 }

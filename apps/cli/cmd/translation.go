@@ -38,14 +38,13 @@ func createTranslationCommand() *cobra.Command {
 	return createTranslationCommandWithRealServices(cmd)
 }
 
-// createTranslationCommandWithRealServices creates the command with real database services  
+// createTranslationCommandWithRealServices creates the command with real database services
 func createTranslationCommandWithRealServices(baseCmd *cobra.Command) *cobra.Command {
 	// Add subcommands with dynamic service creation (each command creates its own DB connection)
 	baseCmd.AddCommand(translation.NewCreateCommand(nil)) // Pass nil, commands will create their own services
 	baseCmd.AddCommand(translation.NewGetCommand(nil))
-	baseCmd.AddCommand(translation.NewListCommand(nil))  
+	baseCmd.AddCommand(translation.NewListCommand(nil))
 	baseCmd.AddCommand(translation.NewDeleteCommand(nil))
 
 	return baseCmd
 }
-
