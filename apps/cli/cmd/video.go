@@ -22,47 +22,6 @@ var videoCmd = &cobra.Command{
 	Long:  `Operations for managing YouTube videos from channels.`,
 }
 
-// videoFetchCmd fetches videos from a channel
-var videoFetchCmd = &cobra.Command{
-	Use:   "fetch [CHANNEL_URL]",
-	Short: "Fetch videos from a YouTube channel",
-	Long:  `Fetch video list from a YouTube channel using yt-dlp.`,
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		channelURL := args[0]
-
-		// Create service with timeout context
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-		defer cancel()
-
-		// Create YouTube service
-		youtubeService := youtubeSvc.NewYouTubeService()
-
-		// Get limit flag
-		limit, _ := cmd.Flags().GetInt("limit")
-
-		// Fetch videos
-		videos, err := youtubeService.FetchChannelVideos(ctx, channelURL, limit)
-		if err != nil {
-			return fmt.Errorf("failed to fetch videos: %w", err)
-		}
-
-		// Check if no videos found
-		if len(videos) == 0 {
-			fmt.Println("No videos found for this channel.")
-			return nil
-		}
-
-		// Display result as JSON
-		result, err := json.MarshalIndent(videos, "", "  ")
-		if err != nil {
-			return fmt.Errorf("failed to format result: %w", err)
-		}
-
-		fmt.Printf("Found %d video(s):\n%s\n", len(videos), string(result))
-		return nil
-	},
-}
 
 // videoSaveCmd saves videos from a channel to database
 var videoSaveCmd = &cobra.Command{
@@ -101,11 +60,27 @@ var videoSaveCmd = &cobra.Command{
 			videoRepo,
 		)
 
-		// Get limit flag
-		limit, _ := cmd.Flags().GetInt("limit")
+		// Get dry-run flag
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
 
-		// Save videos
-		videos, err := youtubeService.SaveChannelVideos(ctx, channelURL, limit)
+		// If dry-run, fetch videos without saving (limit = 0 means all videos)
+		if dryRun {
+			videos, err := youtubeService.FetchChannelVideos(ctx, channelURL, 0)
+			if err != nil {
+				return fmt.Errorf("failed to fetch videos (dry-run): %w", err)
+			}
+
+			fmt.Printf("[DRY RUN] Would save %d video(s):\n", len(videos))
+			result, err := json.MarshalIndent(videos, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to format result: %w", err)
+			}
+			fmt.Println(string(result))
+			return nil
+		}
+
+		// Save videos (limit = 0 means all videos)
+		videos, err := youtubeService.SaveChannelVideos(ctx, channelURL, 0)
 		if err != nil {
 			return fmt.Errorf("failed to save videos: %w", err)
 		}
@@ -186,15 +161,13 @@ var videoListCmd = &cobra.Command{
 }
 
 func init() {
-	// Add limit flag to fetch and save commands
-	videoFetchCmd.Flags().Int("limit", 10, "Maximum number of videos to retrieve")
-	videoSaveCmd.Flags().Int("limit", 10, "Maximum number of videos to save")
+	// Add flags to save command
+	videoSaveCmd.Flags().Bool("dry-run", false, "Preview videos without saving to database")
 
 	// Add pagination flags to list command
 	videoListCmd.Flags().Int("limit", 10, "Maximum number of videos to retrieve")
 	videoListCmd.Flags().Int("offset", 0, "Number of videos to skip")
 
-	videoCmd.AddCommand(videoFetchCmd)
 	videoCmd.AddCommand(videoSaveCmd)
 	videoCmd.AddCommand(videoListCmd)
 	rootCmd.AddCommand(videoCmd)
