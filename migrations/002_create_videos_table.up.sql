@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS videos (
     channel_id VARCHAR(255) NOT NULL,      -- Foreign key to channels.id
     title VARCHAR(1000) NOT NULL,          -- Video title
     url VARCHAR(1000) NOT NULL UNIQUE,     -- Video URL
-    duration INTEGER DEFAULT 0,            -- Duration in seconds
+    duration REAL DEFAULT 0,               -- Duration in seconds (float64 for precision)
     
     -- Foreign key constraint
     CONSTRAINT fk_videos_channel_id 

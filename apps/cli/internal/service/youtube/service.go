@@ -57,9 +57,9 @@ type ytDlpChannelInfo struct {
 
 // ytDlpVideoInfo represents yt-dlp JSON output structure for video info
 type ytDlpVideoInfo struct {
-	ID        string `json:"id"`
-	Title     string `json:"title"`
-	ChannelID string `json:"channel_id"`
-	URL       string `json:"webpage_url"`
-	Duration  int    `json:"duration"`
+	ID        string  `json:"id"`
+	Title     string  `json:"title"`
+	ChannelID string  `json:"channel_id"`
+	URL       string  `json:"webpage_url"`
+	Duration  float64 `json:"duration"`
 }

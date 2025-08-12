@@ -27,11 +27,11 @@ type Channel struct {
 
 // Video represents YouTube video information
 type Video struct {
-	ID        string `json:"id" db:"id"`
-	ChannelID string `json:"channel_id" db:"channel_id"`
-	Title     string `json:"title" db:"title"`
-	URL       string `json:"url" db:"url"`
-	Duration  int    `json:"duration" db:"duration"` // duration in seconds
+	ID        string  `json:"id" db:"id"`
+	ChannelID string  `json:"channel_id" db:"channel_id"`
+	Title     string  `json:"title" db:"title"`
+	URL       string  `json:"url" db:"url"`
+	Duration  float64 `json:"duration" db:"duration"`
 }
 
 // Transcription represents video transcription metadata (Option B: Normalized)

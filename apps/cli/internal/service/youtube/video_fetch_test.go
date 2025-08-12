@@ -50,6 +50,27 @@ func TestYouTubeService_FetchChannelVideos(t *testing.T) {
 			wantError: false,
 		},
 		{
+			name:       "duration as float64 conversion",
+			channelURL: "https://www.youtube.com/@test-channel",
+			limit:      1,
+			mockSetup: func(m *mockCmdRunner) {
+				// yt-dlp returns duration as float64 (e.g., 214.0)
+				jsonResponse := `{"id": "video1", "title": "Test Video", "channel_id": "UC123456789", "webpage_url": "https://www.youtube.com/watch?v=video1", "duration": 214.0}`
+				m.On("Run", mock.Anything, "yt-dlp", mock.AnythingOfType("[]string")).
+					Return([]byte(jsonResponse), nil)
+			},
+			wantVideos: []*model.Video{
+				{
+					ID:        "video1",
+					ChannelID: "UC123456789",
+					Title:     "Test Video",
+					URL:       "https://www.youtube.com/watch?v=video1",
+					Duration:  214, // int conversion from 214.0
+				},
+			},
+			wantError: false,
+		},
+		{
 			name:          "empty channel URL",
 			channelURL:    "",
 			limit:         10,
