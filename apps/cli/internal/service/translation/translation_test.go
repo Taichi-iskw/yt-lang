@@ -57,7 +57,7 @@ func TestTranslationService_CreateTranslation(t *testing.T) {
 				}
 
 				// Setup repository save
-				tlr.CreateFunc = func(ctx context.Context, translation *model.Translation) error {
+				tlr.CreateBatchFunc = func(ctx context.Context, translations []*model.Translation) error {
 					return nil
 				}
 			},

@@ -25,11 +25,11 @@ func TestTranslationService_GetTranslation(t *testing.T) {
 			setupMocks: func(tr *mockTranslationRepo) {
 				tr.GetFunc = func(ctx context.Context, id int) (*model.Translation, error) {
 					return &model.Translation{
-						ID:              123,
-						TranscriptionID: "456",
-						TargetLanguage:  "ja",
-						Content:         "こんにちは世界",
-						Source:          "plamo",
+						ID:                     123,
+						TranscriptionSegmentID: "456",
+						TargetLanguage:         "ja",
+						TranslatedText:         "こんにちは世界",
+						Source:                 "plamo",
 					}, nil
 				}
 			},
@@ -121,8 +121,8 @@ func TestTranslationService_ListTranslations(t *testing.T) {
 			setupMocks: func(tr *mockTranslationRepo) {
 				tr.ListByTranscriptionIDFunc = func(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error) {
 					return []*model.Translation{
-						{ID: 1, TranscriptionID: "123", TargetLanguage: "ja", Content: "こんにちは", Source: "plamo"},
-						{ID: 2, TranscriptionID: "123", TargetLanguage: "en", Content: "hello", Source: "plamo"},
+						{ID: 1, TranscriptionSegmentID: "seg-123", TargetLanguage: "ja", TranslatedText: "こんにちは", Source: "plamo"},
+						{ID: 2, TranscriptionSegmentID: "seg-124", TargetLanguage: "en", TranslatedText: "hello", Source: "plamo"},
 					}, nil
 				}
 			},

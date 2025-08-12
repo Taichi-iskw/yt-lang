@@ -38,14 +38,14 @@ func NewRepository(pool Pool) TranslationRepository {
 // Create creates a new translation record
 func (r *translationRepository) Create(ctx context.Context, translation *model.Translation) error {
 	query := `
-		INSERT INTO translations (transcription_id, target_language, content, source)
+		INSERT INTO translations (transcription_segment_id, target_language, translated_text, source)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at`
 
 	err := r.pool.QueryRow(ctx, query,
-		translation.TranscriptionID,
+		translation.TranscriptionSegmentID,
 		translation.TargetLanguage,
-		translation.Content,
+		translation.TranslatedText,
 		translation.Source).Scan(&translation.ID, &translation.CreatedAt)
 
 	if err != nil {
@@ -58,14 +58,14 @@ func (r *translationRepository) Create(ctx context.Context, translation *model.T
 // Get retrieves a translation by ID
 func (r *translationRepository) Get(ctx context.Context, id int) (*model.Translation, error) {
 	query := `
-		SELECT id, transcription_id, target_language, content, source, created_at
+		SELECT id, transcription_segment_id, target_language, translated_text, source, created_at
 		FROM translations
 		WHERE id = $1`
 
 	var translation model.Translation
 	err := r.pool.QueryRow(ctx, query, id).
-		Scan(&translation.ID, &translation.TranscriptionID, &translation.TargetLanguage,
-			&translation.Content, &translation.Source, &translation.CreatedAt)
+		Scan(&translation.ID, &translation.TranscriptionSegmentID, &translation.TargetLanguage,
+			&translation.TranslatedText, &translation.Source, &translation.CreatedAt)
 
 	if err != nil {
 		return nil, err
@@ -76,15 +76,19 @@ func (r *translationRepository) Get(ctx context.Context, id int) (*model.Transla
 
 // GetByTranscriptionIDAndLanguage retrieves translation by transcription ID and target language
 func (r *translationRepository) GetByTranscriptionIDAndLanguage(ctx context.Context, transcriptionID string, targetLanguage string) (*model.Translation, error) {
+	// Join with transcription_segments to find translations for a transcription
 	query := `
-		SELECT id, transcription_id, target_language, content, source, created_at
-		FROM translations
-		WHERE transcription_id = $1 AND target_language = $2`
+		SELECT t.id, t.transcription_segment_id, t.target_language, t.translated_text, t.source, t.created_at
+		FROM translations t
+		JOIN transcription_segments ts ON t.transcription_segment_id = ts.id
+		WHERE ts.transcription_id = $1 AND t.target_language = $2
+		ORDER BY ts.segment_index ASC
+		LIMIT 1`
 
 	var translation model.Translation
 	err := r.pool.QueryRow(ctx, query, transcriptionID, targetLanguage).
-		Scan(&translation.ID, &translation.TranscriptionID, &translation.TargetLanguage,
-			&translation.Content, &translation.Source, &translation.CreatedAt)
+		Scan(&translation.ID, &translation.TranscriptionSegmentID, &translation.TargetLanguage,
+			&translation.TranslatedText, &translation.Source, &translation.CreatedAt)
 
 	if err != nil {
 		return nil, err
@@ -111,15 +115,15 @@ func (r *translationRepository) CreateBatch(ctx context.Context, translations []
 	rows := make([][]interface{}, len(translations))
 	for i, t := range translations {
 		rows[i] = []interface{}{
-			t.TranscriptionID,
+			t.TranscriptionSegmentID,
 			t.TargetLanguage,
-			t.Content,
+			t.TranslatedText,
 			t.Source,
 		}
 	}
 
 	// Use CopyFrom for efficient bulk insert
-	columns := []string{"transcription_id", "target_language", "content", "source"}
+	columns := []string{"transcription_segment_id", "target_language", "translated_text", "source"}
 	count, err := r.pool.CopyFrom(
 		ctx,
 		pgx.Identifier{"translations"},
@@ -143,13 +147,15 @@ func (r *translationRepository) GetByTranscriptionID(ctx context.Context, transc
 	return []*model.Translation{}, nil
 }
 
-// ListByTranscriptionID retrieves translations for a transcription segment with pagination
+// ListByTranscriptionID retrieves translations for a transcription with pagination
 func (r *translationRepository) ListByTranscriptionID(ctx context.Context, transcriptionID string, limit, offset int) ([]*model.Translation, error) {
+	// Join with transcription_segments to get translations for a transcription
 	query := `
-		SELECT id, transcription_id, target_language, content, source, created_at
-		FROM translations
-		WHERE transcription_id = $1
-		ORDER BY created_at DESC
+		SELECT t.id, t.transcription_segment_id, t.target_language, t.translated_text, t.source, t.created_at
+		FROM translations t
+		JOIN transcription_segments ts ON t.transcription_segment_id = ts.id
+		WHERE ts.transcription_id = $1
+		ORDER BY ts.segment_index ASC, t.created_at DESC
 		LIMIT $2 OFFSET $3`
 
 	rows, err := r.pool.Query(ctx, query, transcriptionID, limit, offset)
@@ -161,8 +167,8 @@ func (r *translationRepository) ListByTranscriptionID(ctx context.Context, trans
 	var translations []*model.Translation
 	for rows.Next() {
 		var translation model.Translation
-		err := rows.Scan(&translation.ID, &translation.TranscriptionID, &translation.TargetLanguage,
-			&translation.Content, &translation.Source, &translation.CreatedAt)
+		err := rows.Scan(&translation.ID, &translation.TranscriptionSegmentID, &translation.TargetLanguage,
+			&translation.TranslatedText, &translation.Source, &translation.CreatedAt)
 		if err != nil {
 			return nil, err
 		}

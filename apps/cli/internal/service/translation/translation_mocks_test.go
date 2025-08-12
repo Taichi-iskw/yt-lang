@@ -77,8 +77,8 @@ type Batch = SegmentBatch
 
 // mockBatchProcessor mocks BatchProcessor interface
 type mockBatchProcessor struct {
-	CreateBatchesFunc                func(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error)
-	TranslateBatchWithFallbackFunc   func(batch SegmentBatch, plamoService PlamoService, ctx context.Context, sourceLang, targetLang string) ([]*TranslationSegment, error)
+	CreateBatchesFunc              func(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error)
+	TranslateBatchWithFallbackFunc func(batch SegmentBatch, plamoService PlamoService, ctx context.Context, sourceLang, targetLang string) ([]*TranslationSegment, error)
 }
 
 func (m *mockBatchProcessor) CreateBatches(segments []*model.TranscriptionSegment, maxTokens int) ([]SegmentBatch, error) {

@@ -52,7 +52,7 @@ func NewGetCommand(service translation.TranslationService) *cobra.Command {
 					}
 				} else {
 					// Fallback: split content into lines for SRT format
-					lines := strings.Split(translation.Content, "\n")
+					lines := strings.Split(translation.TranslatedText, "\n")
 					for i, line := range lines {
 						line = strings.TrimSpace(line)
 						if line == "" {
@@ -69,13 +69,13 @@ func NewGetCommand(service translation.TranslationService) *cobra.Command {
 				cmd.Printf("Translation ID: %d\n", translation.ID)
 				cmd.Printf("Target Language: %s\n", translation.TargetLanguage)
 				cmd.Printf("Source: %s\n", translation.Source)
-				cmd.Println("\nContent:")
+				cmd.Println("\nTranslatedText:")
 				if segments != nil && len(segments) > 0 {
 					for _, seg := range segments {
 						cmd.Printf("%s -> %s\n", seg.Text, seg.TranslatedText)
 					}
 				} else {
-					cmd.Println(translation.Content)
+					cmd.Println(translation.TranslatedText)
 				}
 			}
 

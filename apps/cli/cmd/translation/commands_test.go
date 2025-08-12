@@ -73,7 +73,7 @@ func TestCreateCommand(t *testing.T) {
 					return &model.Translation{
 						ID:             1,
 						TargetLanguage: "ja",
-						Content:        "こんにちは世界",
+						TranslatedText: "こんにちは世界",
 						Source:         "plamo",
 					}, nil
 				}
@@ -174,7 +174,7 @@ func TestGetCommand(t *testing.T) {
 					return &model.Translation{
 							ID:             1,
 							TargetLanguage: "ja",
-							Content:        "こんにちは世界",
+							TranslatedText: "こんにちは世界",
 						}, []*translation.TranslationSegment{
 							{Text: "Hello", TranslatedText: "こんにちは"},
 							{Text: "World", TranslatedText: "世界"},
@@ -193,7 +193,7 @@ func TestGetCommand(t *testing.T) {
 					return &model.Translation{
 						ID:             1,
 						TargetLanguage: "ja",
-						Content:        "テスト",
+						TranslatedText: "テスト",
 					}, nil, nil
 				}
 			},

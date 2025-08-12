@@ -39,7 +39,7 @@ func NewListCommand(service translation.TranslationService) *cobra.Command {
 				cmd.Printf("Target Language: %s\n", translation.TargetLanguage)
 				cmd.Printf("Source: %s\n", translation.Source)
 				cmd.Printf("Created: %s\n", translation.CreatedAt.Format("2006-01-02 15:04:05"))
-				cmd.Printf("Content Preview: %s\n", truncateString(translation.Content, 100))
+				cmd.Printf("Content Preview: %s\n", truncateString(translation.TranslatedText, 100))
 				cmd.Println("---")
 			}
 

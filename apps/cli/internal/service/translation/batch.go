@@ -18,11 +18,10 @@ type SegmentBatch struct {
 
 // TranslationSegment represents a translated segment
 type TranslationSegment struct {
-	ID              string
-	TranscriptionID string
-	SegmentIndex    int
-	Text            string
-	TranslatedText  string
+	TranscriptionSegmentID string
+	SegmentIndex           int
+	Text                   string
+	TranslatedText         string
 }
 
 // BatchProcessor handles batching and splitting of translation segments
@@ -165,11 +164,10 @@ func (bp *batchProcessor) splitAndValidateTranslation(batch SegmentBatch, transl
 	var results []*TranslationSegment
 	for i, segment := range batch.Segments {
 		result := &TranslationSegment{
-			ID:              segment.ID,
-			TranscriptionID: segment.TranscriptionID,
-			SegmentIndex:    segment.SegmentIndex,
-			Text:            segment.Text,
-			TranslatedText:  strings.TrimSpace(translatedTexts[i]),
+			TranscriptionSegmentID: segment.ID,
+			SegmentIndex:           segment.SegmentIndex,
+			Text:                   segment.Text,
+			TranslatedText:         strings.TrimSpace(translatedTexts[i]),
 		}
 		results = append(results, result)
 	}
@@ -190,11 +188,10 @@ func (bp *batchProcessor) translateIndividually(segments []*model.TranscriptionS
 		}
 
 		result := &TranslationSegment{
-			ID:              segment.ID,
-			TranscriptionID: segment.TranscriptionID,
-			SegmentIndex:    segment.SegmentIndex,
-			Text:            segment.Text,
-			TranslatedText:  strings.TrimSpace(translatedText),
+			TranscriptionSegmentID: segment.ID,
+			SegmentIndex:           segment.SegmentIndex,
+			Text:                   segment.Text,
+			TranslatedText:         strings.TrimSpace(translatedText),
 		}
 		results = append(results, result)
 	}

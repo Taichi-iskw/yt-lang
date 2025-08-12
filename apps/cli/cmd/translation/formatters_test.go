@@ -16,7 +16,7 @@ func TestTextFormatter(t *testing.T) {
 	trans := &model.Translation{
 		ID:             1,
 		TargetLanguage: "ja",
-		Content:        "こんにちは世界",
+		TranslatedText: "こんにちは世界",
 		Source:         "plamo",
 		CreatedAt:      time.Now(),
 	}
@@ -44,7 +44,7 @@ func TestJSONFormatter(t *testing.T) {
 	trans := &model.Translation{
 		ID:             1,
 		TargetLanguage: "ja",
-		Content:        "テスト",
+		TranslatedText: "テスト",
 		Source:         "plamo",
 		CreatedAt:      time.Now(),
 	}
@@ -54,7 +54,7 @@ func TestJSONFormatter(t *testing.T) {
 
 	assert.Contains(t, output, `"id": 1`)
 	assert.Contains(t, output, `"target_language": "ja"`)
-	assert.Contains(t, output, `"content": "テスト"`)
+	assert.Contains(t, output, `"translated_text": "テスト"`)
 	assert.Contains(t, output, `"source": "plamo"`)
 }
 
@@ -64,7 +64,7 @@ func TestSRTFormatter(t *testing.T) {
 	trans := &model.Translation{
 		ID:             1,
 		TargetLanguage: "ja",
-		Content:        "こんにちは世界",
+		TranslatedText: "こんにちは世界",
 		Source:         "plamo",
 	}
 

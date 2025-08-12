@@ -21,20 +21,20 @@ func TestTranslationRepository_Create(t *testing.T) {
 		{
 			name: "successful creation",
 			translation: &model.Translation{
-				TranscriptionID: "1",
-				TargetLanguage:  "ja",
-				Content:         "こんにちは",
-				Source:          "plamo",
+				TranscriptionSegmentID: "1",
+				TargetLanguage:         "ja",
+				TranslatedText:         "こんにちは",
+				Source:                 "plamo",
 			},
 			wantErr: false,
 		},
 		{
 			name: "duplicate translation returns error",
 			translation: &model.Translation{
-				TranscriptionID: "1",
-				TargetLanguage:  "ja",
-				Content:         "こんにちは",
-				Source:          "plamo",
+				TranscriptionSegmentID: "1",
+				TargetLanguage:         "ja",
+				TranslatedText:         "こんにちは",
+				Source:                 "plamo",
 			},
 			wantErr: true,
 		},
@@ -51,16 +51,16 @@ func TestTranslationRepository_Create(t *testing.T) {
 			if tt.wantErr {
 				// Expect constraint violation error
 				mock.ExpectQuery("INSERT INTO translations").
-					WithArgs(tt.translation.TranscriptionID, tt.translation.TargetLanguage,
-						tt.translation.Content, tt.translation.Source).
+					WithArgs(tt.translation.TranscriptionSegmentID, tt.translation.TargetLanguage,
+						tt.translation.TranslatedText, tt.translation.Source).
 					WillReturnError(errors.New("constraint violation"))
 			} else {
 				// Expect successful insert with returning ID and created_at
 				rows := mock.NewRows([]string{"id", "created_at"}).
 					AddRow(1, time.Now())
 				mock.ExpectQuery("INSERT INTO translations").
-					WithArgs(tt.translation.TranscriptionID, tt.translation.TargetLanguage,
-						tt.translation.Content, tt.translation.Source).
+					WithArgs(tt.translation.TranscriptionSegmentID, tt.translation.TargetLanguage,
+						tt.translation.TranslatedText, tt.translation.Source).
 					WillReturnRows(rows)
 			}
 
@@ -93,18 +93,18 @@ func TestTranslationRepository_Get(t *testing.T) {
 			name: "successful get",
 			id:   1,
 			setupMock: func(mock pgxmock.PgxPoolIface) {
-				rows := mock.NewRows([]string{"id", "transcription_id", "target_language", "content", "source", "created_at"}).
+				rows := mock.NewRows([]string{"id", "transcription_segment_id", "target_language", "translated_text", "source", "created_at"}).
 					AddRow(1, "123", "ja", "こんにちは世界", "plamo", time.Now())
 				mock.ExpectQuery("SELECT (.+) FROM translations WHERE id = \\$1").
 					WithArgs(1).
 					WillReturnRows(rows)
 			},
 			want: &model.Translation{
-				ID:              1,
-				TranscriptionID: "123",
-				TargetLanguage:  "ja",
-				Content:         "こんにちは世界",
-				Source:          "plamo",
+				ID:                     1,
+				TranscriptionSegmentID: "123",
+				TargetLanguage:         "ja",
+				TranslatedText:         "こんにちは世界",
+				Source:                 "plamo",
 			},
 			wantErr: false,
 		},
@@ -142,9 +142,9 @@ func TestTranslationRepository_Get(t *testing.T) {
 				require.NoError(t, err)
 				require.NotNil(t, result)
 				assert.Equal(t, tt.want.ID, result.ID)
-				assert.Equal(t, tt.want.TranscriptionID, result.TranscriptionID)
+				assert.Equal(t, tt.want.TranscriptionSegmentID, result.TranscriptionSegmentID)
 				assert.Equal(t, tt.want.TargetLanguage, result.TargetLanguage)
-				assert.Equal(t, tt.want.Content, result.Content)
+				assert.Equal(t, tt.want.TranslatedText, result.TranslatedText)
 				assert.Equal(t, tt.want.Source, result.Source)
 			}
 
@@ -153,7 +153,7 @@ func TestTranslationRepository_Get(t *testing.T) {
 	}
 }
 
-func TestTranslationRepository_GetByTranscriptionIDAndLanguage(t *testing.T) {
+func TestTranslationRepository_GetByTranscriptionSegmentIDAndLanguage(t *testing.T) {
 	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
 	defer mock.Close()
@@ -164,9 +164,9 @@ func TestTranslationRepository_GetByTranscriptionIDAndLanguage(t *testing.T) {
 	targetLanguage := "ja"
 
 	// Setup mock expectation
-	rows := mock.NewRows([]string{"id", "transcription_id", "target_language", "content", "source", "created_at"}).
+	rows := mock.NewRows([]string{"id", "transcription_segment_id", "target_language", "translated_text", "source", "created_at"}).
 		AddRow(1, transcriptionID, targetLanguage, "こんにちは", "plamo", time.Now())
-	mock.ExpectQuery("SELECT (.+) FROM translations WHERE transcription_id = \\$1 AND target_language = \\$2").
+	mock.ExpectQuery("SELECT (.+) FROM translations t JOIN transcription_segments ts ON t.transcription_segment_id = ts.id WHERE ts.transcription_id = \\$1 AND t.target_language = \\$2").
 		WithArgs(transcriptionID, targetLanguage).
 		WillReturnRows(rows)
 
@@ -175,13 +175,13 @@ func TestTranslationRepository_GetByTranscriptionIDAndLanguage(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, translation)
-	assert.Equal(t, transcriptionID, translation.TranscriptionID)
+	assert.Equal(t, transcriptionID, translation.TranscriptionSegmentID)
 	assert.Equal(t, targetLanguage, translation.TargetLanguage)
 
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestTranslationRepository_ListByTranscriptionID(t *testing.T) {
+func TestTranslationRepository_ListByTranscriptionSegmentID(t *testing.T) {
 	tests := []struct {
 		name            string
 		transcriptionID string
@@ -198,10 +198,10 @@ func TestTranslationRepository_ListByTranscriptionID(t *testing.T) {
 			limit:           10,
 			offset:          0,
 			setupMock: func(mock pgxmock.PgxPoolIface) {
-				rows := mock.NewRows([]string{"id", "transcription_id", "target_language", "content", "source", "created_at"}).
+				rows := mock.NewRows([]string{"id", "transcription_segment_id", "target_language", "translated_text", "source", "created_at"}).
 					AddRow(1, "123", "ja", "こんにちは", "plamo", time.Now()).
 					AddRow(2, "123", "en", "hello", "plamo", time.Now())
-				mock.ExpectQuery("SELECT (.+) FROM translations WHERE transcription_id = \\$1 ORDER BY created_at DESC LIMIT \\$2 OFFSET \\$3").
+				mock.ExpectQuery("SELECT (.+) FROM translations t JOIN transcription_segments ts ON t.transcription_segment_id = ts.id WHERE ts.transcription_id = \\$1 ORDER BY ts.segment_index ASC, t.created_at DESC LIMIT \\$2 OFFSET \\$3").
 					WithArgs("123", 10, 0).
 					WillReturnRows(rows)
 			},
@@ -215,7 +215,7 @@ func TestTranslationRepository_ListByTranscriptionID(t *testing.T) {
 			offset:          0,
 			setupMock: func(mock pgxmock.PgxPoolIface) {
 				rows := mock.NewRows([]string{"id", "transcription_id", "target_language", "content", "source", "created_at"})
-				mock.ExpectQuery("SELECT (.+) FROM translations WHERE transcription_id = \\$1 ORDER BY created_at DESC LIMIT \\$2 OFFSET \\$3").
+				mock.ExpectQuery("SELECT (.+) FROM translations t JOIN transcription_segments ts ON t.transcription_segment_id = ts.id WHERE ts.transcription_id = \\$1 ORDER BY ts.segment_index ASC, t.created_at DESC LIMIT \\$2 OFFSET \\$3").
 					WithArgs("999", 10, 0).
 					WillReturnRows(rows)
 			},
@@ -228,7 +228,7 @@ func TestTranslationRepository_ListByTranscriptionID(t *testing.T) {
 			limit:           10,
 			offset:          0,
 			setupMock: func(mock pgxmock.PgxPoolIface) {
-				mock.ExpectQuery("SELECT (.+) FROM translations WHERE transcription_id = \\$1 ORDER BY created_at DESC LIMIT \\$2 OFFSET \\$3").
+				mock.ExpectQuery("SELECT (.+) FROM translations t JOIN transcription_segments ts ON t.transcription_segment_id = ts.id WHERE ts.transcription_id = \\$1 ORDER BY ts.segment_index ASC, t.created_at DESC LIMIT \\$2 OFFSET \\$3").
 					WithArgs("123", 10, 0).
 					WillReturnError(errors.New("database connection failed"))
 			},
@@ -259,7 +259,7 @@ func TestTranslationRepository_ListByTranscriptionID(t *testing.T) {
 
 				// Verify transcription ID matches for non-empty results
 				for _, translation := range result {
-					assert.Equal(t, tt.transcriptionID, translation.TranscriptionID)
+					assert.Equal(t, tt.transcriptionID, translation.TranscriptionSegmentID)
 				}
 			}
 

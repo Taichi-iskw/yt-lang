@@ -58,12 +58,12 @@ type TranscriptionSegment struct {
 	Confidence      *float64 `json:"confidence" db:"confidence"`
 }
 
-// Translation represents translated transcription
+// Translation represents translated transcription segment
 type Translation struct {
-	ID              int       `json:"id" db:"id"`                             // SERIAL PRIMARY KEY (PostgreSQL generates)
-	TranscriptionID string    `json:"transcription_id" db:"transcription_id"` // UUID referencing transcriptions.id
-	TargetLanguage  string    `json:"target_language" db:"target_language"`
-	Content         string    `json:"content" db:"content"`
-	Source          string    `json:"source" db:"source"`
-	CreatedAt       time.Time `json:"created_at" db:"created_at"`
+	ID                     int       `json:"id" db:"id"`                                             // SERIAL PRIMARY KEY (PostgreSQL generates)
+	TranscriptionSegmentID string    `json:"transcription_segment_id" db:"transcription_segment_id"` // UUID referencing transcription_segments.id
+	TargetLanguage         string    `json:"target_language" db:"target_language"`
+	TranslatedText         string    `json:"translated_text" db:"translated_text"`
+	Source                 string    `json:"source" db:"source"`
+	CreatedAt              time.Time `json:"created_at" db:"created_at"`
 }

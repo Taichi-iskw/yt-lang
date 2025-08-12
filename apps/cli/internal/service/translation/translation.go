@@ -77,7 +77,7 @@ func NewTranslationServiceWithFallback(
 	}
 }
 
-// CreateTranslation creates a new translation for a transcription
+// CreateTranslation creates translations for all segments in a transcription
 func (s *translationService) CreateTranslation(ctx context.Context, transcriptionID string, targetLang string) (*model.Translation, error) {
 	// Step 1: Get transcription segments
 	segments, err := s.transcriptionRepo.GetSegments(ctx, transcriptionID)
@@ -121,38 +121,30 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 		allTranslatedSegments = append(allTranslatedSegments, translatedSegments...)
 	}
 
-	// Step 5: Combine all segments into a single translation
-	var translatedTexts []string
+	// Step 5: Prepare translations for batch save (one per segment)
+	var translations []*model.Translation
 	for _, seg := range allTranslatedSegments {
-		translatedTexts = append(translatedTexts, seg.TranslatedText)
-	}
-
-	translation := &model.Translation{
-		TranscriptionID: transcriptionID,
-		TargetLanguage:  targetLang,
-		Content:         joinSegments(translatedTexts),
-		Source:          "plamo",
-	}
-
-	// Step 6: Save the translation
-	err = s.translationRepo.Create(ctx, translation)
-	if err != nil {
-		return nil, fmt.Errorf("failed to save translation: %w", err)
-	}
-
-	return translation, nil
-}
-
-// joinSegments joins translated segments with space
-func joinSegments(segments []string) string {
-	result := ""
-	for i, seg := range segments {
-		if i > 0 {
-			result += " "
+		translation := &model.Translation{
+			TranscriptionSegmentID: seg.TranscriptionSegmentID,
+			TargetLanguage:         targetLang,
+			TranslatedText:         seg.TranslatedText,
+			Source:                 "plamo",
 		}
-		result += seg
+		translations = append(translations, translation)
 	}
-	return result
+
+	// Step 6: Save all translations using batch insert
+	err = s.translationRepo.CreateBatch(ctx, translations)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save translations: %w", err)
+	}
+
+	// Return the first translation as representative (for CLI display purposes)
+	if len(translations) > 0 {
+		return translations[0], nil
+	}
+
+	return nil, errors.New("no translations created")
 }
 
 // GetTranslation retrieves a translation
@@ -171,8 +163,8 @@ func (s *translationService) GetTranslation(ctx context.Context, id string) (*mo
 
 	// Get segments to reconstruct translation segments
 	// First, we need to reverse-engineer the transcription ID from the hashed value
-	// For now, we'll return the translation segments by parsing the content
-	segments, err := s.parseTranslationSegments(translation.Content)
+	// For now, we'll return the translation segments by parsing the translated text
+	segments, err := s.parseTranslationSegments(translation.TranslatedText)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse translation segments: %w", err)
 	}

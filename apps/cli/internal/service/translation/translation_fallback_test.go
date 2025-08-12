@@ -49,9 +49,8 @@ func TestTranslationService_FallbackStrategy(t *testing.T) {
 			},
 			wantErr: false,
 			verify: func(t *testing.T, translation *model.Translation) {
-				// All segments are combined into one translation
-				assert.Contains(t, translation.Content, "こんにちは")
-				assert.Contains(t, translation.Content, "世界")
+				// Only first segment translation is returned
+				assert.Contains(t, translation.TranslatedText, "こんにちは")
 			},
 		},
 		{
@@ -82,7 +81,7 @@ func TestTranslationService_FallbackStrategy(t *testing.T) {
 			},
 			wantErr: false,
 			verify: func(t *testing.T, translation *model.Translation) {
-				assert.Contains(t, translation.Content, "複雑なテキスト")
+				assert.Contains(t, translation.TranslatedText, "複雑なテキスト")
 			},
 		},
 		{
@@ -114,7 +113,7 @@ func TestTranslationService_FallbackStrategy(t *testing.T) {
 			},
 			wantErr: false,
 			verify: func(t *testing.T, translation *model.Translation) {
-				assert.Contains(t, translation.Content, "テスト")
+				assert.Contains(t, translation.TranslatedText, "テスト")
 			},
 		},
 	}
@@ -126,7 +125,7 @@ func TestTranslationService_FallbackStrategy(t *testing.T) {
 			cmdRunner := &MockCmdRunner{}
 			batchProcessor := &mockBatchProcessorWithFallback{}
 			translationRepo := &mockTranslationRepo{
-				CreateFunc: func(ctx context.Context, translation *model.Translation) error {
+				CreateBatchFunc: func(ctx context.Context, translations []*model.Translation) error {
 					return nil
 				},
 			}

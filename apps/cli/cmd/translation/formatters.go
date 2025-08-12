@@ -40,9 +40,9 @@ func (f *TextFormatter) Format(translation *model.Translation, segments []*Trans
 			output.WriteString(fmt.Sprintf("[%d] %s\n    → %s\n", i+1, seg.Text, seg.TranslatedText))
 		}
 	} else {
-		output.WriteString("Content:\n")
+		output.WriteString("TranslatedText:\n")
 		output.WriteString("========\n")
-		output.WriteString(translation.Content)
+		output.WriteString(translation.TranslatedText)
 		output.WriteString("\n")
 	}
 
