@@ -4,19 +4,35 @@ import (
 	"context"
 
 	"github.com/Taichi-iskw/yt-lang/internal/model"
-	"github.com/pashagolub/pgxmock/v4"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
+
+// Pool interface for abstracting pgx connection pool
+type Pool interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error)
+	Begin(ctx context.Context) (pgx.Tx, error)
+	Close()
+}
 
 // translationRepository implements TranslationRepository
 type translationRepository struct {
-	db pgxmock.PgxPoolIface
+	pool Pool
 }
 
 // NewTranslationRepository creates a new translation repository
-func NewTranslationRepository(db pgxmock.PgxPoolIface) TranslationRepository {
+func NewTranslationRepository(pool Pool) TranslationRepository {
 	return &translationRepository{
-		db: db,
+		pool: pool,
 	}
+}
+
+// NewRepository creates a new translation repository (alias for consistency with other repos)
+func NewRepository(pool Pool) TranslationRepository {
+	return NewTranslationRepository(pool)
 }
 
 // Create creates a new translation record
@@ -26,7 +42,7 @@ func (r *translationRepository) Create(ctx context.Context, translation *model.T
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at`
 
-	err := r.db.QueryRow(ctx, query,
+	err := r.pool.QueryRow(ctx, query,
 		translation.TranscriptionID,
 		translation.TargetLanguage,
 		translation.Content,
@@ -47,7 +63,7 @@ func (r *translationRepository) Get(ctx context.Context, id int) (*model.Transla
 		WHERE id = $1`
 
 	var translation model.Translation
-	err := r.db.QueryRow(ctx, query, id).
+	err := r.pool.QueryRow(ctx, query, id).
 		Scan(&translation.ID, &translation.TranscriptionID, &translation.TargetLanguage,
 			&translation.Content, &translation.Source, &translation.CreatedAt)
 
@@ -66,7 +82,7 @@ func (r *translationRepository) GetByTranscriptionIDAndLanguage(ctx context.Cont
 		WHERE transcription_id = $1 AND target_language = $2`
 
 	var translation model.Translation
-	err := r.db.QueryRow(ctx, query, transcriptionID, targetLanguage).
+	err := r.pool.QueryRow(ctx, query, transcriptionID, targetLanguage).
 		Scan(&translation.ID, &translation.TranscriptionID, &translation.TargetLanguage,
 			&translation.Content, &translation.Source, &translation.CreatedAt)
 
@@ -81,7 +97,7 @@ func (r *translationRepository) GetByTranscriptionIDAndLanguage(ctx context.Cont
 func (r *translationRepository) Delete(ctx context.Context, id int) error {
 	query := `DELETE FROM translations WHERE id = $1`
 
-	_, err := r.db.Exec(ctx, query, id)
+	_, err := r.pool.Exec(ctx, query, id)
 	return err
 }
 
@@ -106,7 +122,7 @@ func (r *translationRepository) ListByTranscriptionID(ctx context.Context, trans
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.Query(ctx, query, transcriptionID, limit, offset)
+	rows, err := r.pool.Query(ctx, query, transcriptionID, limit, offset)
 	if err != nil {
 		return nil, err
 	}

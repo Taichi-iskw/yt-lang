@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Taichi-iskw/yt-lang/internal/service/common"
 )
@@ -13,7 +14,9 @@ import (
 // PlamoServerService implements PlamoService using PLaMo server mode
 type PlamoServerService struct {
 	cmdRunner     common.CmdRunner
+	serverProcess common.Process
 	serverStarted bool
+	cancel        context.CancelFunc
 	mu            sync.Mutex
 }
 
@@ -33,6 +36,10 @@ func (s *PlamoServerService) StartServer(ctx context.Context) error {
 		return nil
 	}
 
+	// Create cancellable context for server
+	serverCtx, cancel := context.WithCancel(ctx)
+	s.cancel = cancel
+
 	// Start PLaMo server with default settings
 	args := []string{
 		"server",
@@ -42,13 +49,19 @@ func (s *PlamoServerService) StartServer(ctx context.Context) error {
 		"--interactive", // Interactive mode for continuous translation
 	}
 
-	// Use CmdRunner to start server (for testing compatibility)
-	_, err := s.cmdRunner.Run(ctx, "plamo-translate", args...)
+	// Use CmdRunner to start server process
+	process, err := s.cmdRunner.Start(serverCtx, "plamo-translate", args...)
 	if err != nil {
+		cancel()
 		return fmt.Errorf("failed to start PLaMo server: %w", err)
 	}
 
+	s.serverProcess = process
 	s.serverStarted = true
+
+	// Wait a moment to ensure server started
+	time.Sleep(2 * time.Second)
+
 	return nil
 }
 
@@ -61,9 +74,37 @@ func (s *PlamoServerService) StopServer() error {
 		return nil
 	}
 
-	// In a real implementation, this would send a shutdown command to the server
-	// For now, just mark as stopped
+	// Cancel the server context first for graceful shutdown
+	if s.cancel != nil {
+		s.cancel()
+	}
+
+	// If we have a server process, wait for it to shutdown gracefully
+	if s.serverProcess != nil {
+		done := make(chan error, 1)
+		go func() {
+			done <- s.serverProcess.Wait()
+		}()
+
+		select {
+		case <-time.After(5 * time.Second):
+			// Force kill if graceful shutdown takes too long
+			if err := s.serverProcess.Kill(); err != nil {
+				return fmt.Errorf("failed to force kill PLaMo server: %w", err)
+			}
+			<-done // Wait for Wait() to return
+			return fmt.Errorf("PLaMo server killed after timeout")
+		case err := <-done:
+			// Server shutdown completed
+			if err != nil && !strings.Contains(err.Error(), "context canceled") {
+				return fmt.Errorf("PLaMo server stopped with error: %w", err)
+			}
+		}
+	}
+
 	s.serverStarted = false
+	s.serverProcess = nil
+	s.cancel = nil
 	return nil
 }
 

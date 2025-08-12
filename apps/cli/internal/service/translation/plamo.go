@@ -58,13 +58,13 @@ func (s *plamoService) Translate(ctx context.Context, text string, fromLang, toL
 	return strings.TrimSpace(string(output)), nil
 }
 
-// StartServer is a no-op for simple mode
+// StartServer is a no-op for simple mode (doesn't use persistent server)
 func (s *plamoService) StartServer(ctx context.Context) error {
-	// Simple mode doesn't use persistent server
+	// Simple mode executes PLaMo for each translation request, no persistent server needed
 	return nil
 }
 
-// StopServer is a no-op for simple mode
+// StopServer is a no-op for simple mode (doesn't use persistent server)
 func (s *plamoService) StopServer() error {
 	// Simple mode doesn't use persistent server
 	return nil

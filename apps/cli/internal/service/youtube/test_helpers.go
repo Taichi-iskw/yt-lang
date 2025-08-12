@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/Taichi-iskw/yt-lang/internal/model"
+	"github.com/Taichi-iskw/yt-lang/internal/service/common"
 )
 
 // mockCmdRunner is a mock implementation of CmdRunner for testing
@@ -16,6 +17,14 @@ type mockCmdRunner struct {
 func (m *mockCmdRunner) Run(ctx context.Context, name string, args ...string) ([]byte, error) {
 	arguments := m.Called(ctx, name, args)
 	return arguments.Get(0).([]byte), arguments.Error(1)
+}
+
+func (m *mockCmdRunner) Start(ctx context.Context, name string, args ...string) (common.Process, error) {
+	arguments := m.Called(ctx, name, args)
+	if arguments.Get(0) == nil {
+		return nil, arguments.Error(1)
+	}
+	return arguments.Get(0).(common.Process), arguments.Error(1)
 }
 
 // mockChannelRepository is a mock implementation of ChannelRepository for testing

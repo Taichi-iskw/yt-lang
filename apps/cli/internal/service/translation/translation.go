@@ -93,6 +93,7 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("batches", batches)
 
 	// Step 3: Optimize for batch translation - start server once for multiple batches
 	sourceLanguage := "en" // Default source language - should be detected from transcription
@@ -112,6 +113,7 @@ func (s *translationService) CreateTranslation(ctx context.Context, transcriptio
 	for _, batch := range batches {
 		// Translate batch
 		translatedText, err := s.plamoService.Translate(ctx, batch.CombinedText, sourceLanguage, targetLang)
+		fmt.Println("translatedText", translatedText)
 		if err != nil {
 			// Try fallback strategy if translation fails
 			fallbackSegments, fallbackErr := s.batchProcessor.ProcessWithFallback(batch.Segments)

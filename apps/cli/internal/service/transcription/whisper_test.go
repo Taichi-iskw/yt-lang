@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/Taichi-iskw/yt-lang/internal/model"
+	"github.com/Taichi-iskw/yt-lang/internal/service/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -24,6 +25,14 @@ func (m *mockWhisperCmdRunner) Run(ctx context.Context, name string, args ...str
 		return nil, argsMock.Error(1)
 	}
 	return argsMock.Get(0).([]byte), argsMock.Error(1)
+}
+
+func (m *mockWhisperCmdRunner) Start(ctx context.Context, name string, args ...string) (common.Process, error) {
+	argsMock := m.Called(ctx, name, args)
+	if argsMock.Get(0) == nil {
+		return nil, argsMock.Error(1)
+	}
+	return argsMock.Get(0).(common.Process), argsMock.Error(1)
 }
 
 func TestWhisperService_TranscribeAudio(t *testing.T) {
