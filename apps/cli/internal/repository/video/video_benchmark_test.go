@@ -162,7 +162,7 @@ func generateTestVideos(channelID string, count int) []*model.Video {
 			ChannelID: channelID,
 			Title:     fmt.Sprintf("Benchmark Video %d - Performance Test", i),
 			URL:       fmt.Sprintf("https://www.youtube.com/watch?v=benchmark_%d", i),
-			Duration:  180 + (i % 300), // Vary duration between 180-480 seconds
+			Duration:  float64(180 + (i % 300)), // Vary duration between 180-480 seconds
 		}
 	}
 

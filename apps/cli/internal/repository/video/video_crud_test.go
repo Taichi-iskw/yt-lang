@@ -25,11 +25,11 @@ func TestVideoRepository_Create(t *testing.T) {
 				ChannelID: "UC123456789",
 				Title:     "Never Gonna Give You Up",
 				URL:       "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-				Duration:  212,
+				Duration:  212.0,
 			},
 			setup: func(mock pgxmock.PgxPoolIface) {
 				mock.ExpectExec("INSERT INTO videos").
-					WithArgs("dQw4w9WgXcQ", "UC123456789", "Never Gonna Give You Up", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", 212).
+					WithArgs("dQw4w9WgXcQ", "UC123456789", "Never Gonna Give You Up", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", 212.0).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 			},
 			wantErr: false,
@@ -41,11 +41,11 @@ func TestVideoRepository_Create(t *testing.T) {
 				ChannelID: "UC123456789",
 				Title:     "Never Gonna Give You Up",
 				URL:       "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-				Duration:  212,
+				Duration:  212.0,
 			},
 			setup: func(mock pgxmock.PgxPoolIface) {
 				mock.ExpectExec("INSERT INTO videos").
-					WithArgs("dQw4w9WgXcQ", "UC123456789", "Never Gonna Give You Up", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", 212).
+					WithArgs("dQw4w9WgXcQ", "UC123456789", "Never Gonna Give You Up", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", 212.0).
 					WillReturnError(assert.AnError)
 			},
 			wantErr: true,
@@ -108,7 +108,7 @@ func TestVideoRepository_GetByID(t *testing.T) {
 				ChannelID: "UC123456789",
 				Title:     "Never Gonna Give You Up",
 				URL:       "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-				Duration:  212,
+				Duration:  212.0,
 			},
 			wantErr: false,
 		},
@@ -174,11 +174,11 @@ func TestVideoRepository_Update(t *testing.T) {
 				ChannelID: "UC123456789",
 				Title:     "Updated Title",
 				URL:       "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-				Duration:  220,
+				Duration:  220.0,
 			},
 			setup: func(mock pgxmock.PgxPoolIface) {
 				mock.ExpectExec("UPDATE videos SET channel_id = \\$2, title = \\$3, url = \\$4, duration = \\$5 WHERE id = \\$1").
-					WithArgs("dQw4w9WgXcQ", "UC123456789", "Updated Title", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", 220).
+					WithArgs("dQw4w9WgXcQ", "UC123456789", "Updated Title", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", 220.0).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 			},
 			wantErr: false,
