@@ -28,6 +28,7 @@ func TestYouTubeService_FetchChannelInfo(t *testing.T) {
 					"id": "123456789",
 					"title": "Test Video",
 					"channel": "Valid Channel",
+					"channel_id": "UC123456789",
 					"channel_url": "https://www.youtube.com/@ValidChannel"
 				}`
 				m.On("Run", mock.Anything, "yt-dlp", mock.AnythingOfType("[]string")).
@@ -119,6 +120,7 @@ func TestYouTubeService_SaveChannelInfo(t *testing.T) {
 					"id": "123456789",
 					"title": "Test Video",
 					"channel": "Valid Channel",
+					"channel_id": "UC123456789",
 					"channel_url": "https://www.youtube.com/@ValidChannel"
 				}`
 				m.On("Run", mock.Anything, "yt-dlp", mock.AnythingOfType("[]string")).

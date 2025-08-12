@@ -22,15 +22,14 @@ var videoCmd = &cobra.Command{
 	Long:  `Operations for managing YouTube videos from channels.`,
 }
 
-
 // videoSaveCmd saves videos from a channel to database
 var videoSaveCmd = &cobra.Command{
-	Use:   "save [CHANNEL_URL]",
-	Short: "Save videos from a YouTube channel to database",
-	Long:  `Fetch videos from a YouTube channel and save them to the database.`,
+	Use:   "save [CHANNEL_ID]",
+	Short: "Save videos from a YouTube channel ID to database",
+	Long:  `Fetch videos from a YouTube channel ID and save them to the database. Channel ID must start with 'UC' (e.g., UC123456789abcdef).`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		channelURL := args[0]
+		channelID := args[0]
 
 		// Create service with timeout context
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -65,7 +64,7 @@ var videoSaveCmd = &cobra.Command{
 
 		// If dry-run, fetch videos without saving (limit = 0 means all videos)
 		if dryRun {
-			videos, err := youtubeService.FetchChannelVideos(ctx, channelURL, 0)
+			videos, err := youtubeService.FetchChannelVideos(ctx, channelID, 0)
 			if err != nil {
 				return fmt.Errorf("failed to fetch videos (dry-run): %w", err)
 			}
@@ -80,7 +79,7 @@ var videoSaveCmd = &cobra.Command{
 		}
 
 		// Save videos (limit = 0 means all videos)
-		videos, err := youtubeService.SaveChannelVideos(ctx, channelURL, 0)
+		videos, err := youtubeService.SaveChannelVideos(ctx, channelID, 0)
 		if err != nil {
 			return fmt.Errorf("failed to save videos: %w", err)
 		}

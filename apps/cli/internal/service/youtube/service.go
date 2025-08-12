@@ -14,8 +14,8 @@ type YouTubeService interface {
 	FetchChannelInfo(ctx context.Context, channelURL string) (*model.Channel, error)
 	SaveChannelInfo(ctx context.Context, channelURL string) (*model.Channel, error)
 	ListChannels(ctx context.Context, limit, offset int) ([]*model.Channel, error)
-	FetchChannelVideos(ctx context.Context, channelURL string, limit int) ([]*model.Video, error)
-	SaveChannelVideos(ctx context.Context, channelURL string, limit int) ([]*model.Video, error)
+	FetchChannelVideos(ctx context.Context, channelID string, limit int) ([]*model.Video, error)
+	SaveChannelVideos(ctx context.Context, channelID string, limit int) ([]*model.Video, error)
 	ListVideos(ctx context.Context, channelID string, limit, offset int) ([]*model.Video, error)
 }
 
@@ -52,6 +52,7 @@ type ytDlpChannelInfo struct {
 	ID         string `json:"id"`
 	Title      string `json:"title"`
 	Channel    string `json:"channel"`
+	ChannelID  string `json:"channel_id"`
 	ChannelURL string `json:"channel_url"`
 }
 

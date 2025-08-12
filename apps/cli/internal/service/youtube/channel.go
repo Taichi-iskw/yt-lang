@@ -3,7 +3,6 @@ package youtube
 import (
 	"context"
 	"encoding/json"
-	"strings"
 
 	"github.com/Taichi-iskw/yt-lang/internal/errors"
 	"github.com/Taichi-iskw/yt-lang/internal/model"
@@ -36,7 +35,7 @@ func (s *youTubeService) FetchChannelInfo(ctx context.Context, channelURL string
 
 	// Convert to our model
 	channel := &model.Channel{
-		ID:   extractChannelID(ytInfo.ID),
+		ID:   ytInfo.ChannelID,
 		Name: ytInfo.Channel,
 		URL:  ytInfo.ChannelURL,
 	}
@@ -85,14 +84,4 @@ func (s *youTubeService) ListChannels(ctx context.Context, limit, offset int) ([
 	}
 
 	return channels, nil
-}
-
-// extractChannelID extracts channel ID from various formats
-func extractChannelID(id string) string {
-	// yt-dlp may return video ID, need to handle channel ID extraction
-	// For now, return as-is (will be improved later)
-	if strings.HasPrefix(id, "UC") {
-		return id
-	}
-	return "UC" + id
 }
