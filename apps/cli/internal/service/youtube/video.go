@@ -16,16 +16,24 @@ func (s *youTubeService) FetchChannelVideos(ctx context.Context, channelURL stri
 	if channelURL == "" {
 		return nil, errors.New(errors.CodeInvalidArg, "channel URL is required")
 	}
-	if limit <= 0 {
-		return nil, errors.New(errors.CodeInvalidArg, "limit must be greater than 0")
+
+	// Auto-append /videos to channel URL if not present
+	if !strings.Contains(channelURL, "/videos") {
+		channelURL = channelURL + "/videos"
 	}
 
-	// Execute yt-dlp command to get video list from channel
+	// Build yt-dlp command arguments
 	args := []string{
 		"--dump-json",
 		"--flat-playlist",
-		"--playlist-end", fmt.Sprintf("%d", limit),
 		channelURL,
+	}
+
+	// Add limit if specified (0 means no limit - fetch all videos)
+	if limit > 0 {
+		// Insert limit arguments after --dump-json and --flat-playlist
+		limitArgs := []string{"--playlist-end", fmt.Sprintf("%d", limit)}
+		args = append(args[:2], append(limitArgs, args[2:]...)...)
 	}
 
 	output, err := s.cmdRunner.Run(ctx, "yt-dlp", args...)

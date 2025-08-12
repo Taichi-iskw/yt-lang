@@ -26,8 +26,8 @@ func TestYouTubeService_FetchChannelVideos(t *testing.T) {
 			channelURL: "https://www.youtube.com/@valid-channel",
 			limit:      3,
 			mockSetup: func(m *mockCmdRunner) {
-				jsonResponse := `{"id": "video1", "title": "Test Video 1", "channel_id": "UC123456789", "webpage_url": "https://www.youtube.com/watch?v=video1", "duration": 300}
-{"id": "video2", "title": "Test Video 2", "channel_id": "UC123456789", "webpage_url": "https://www.youtube.com/watch?v=video2", "duration": 150}`
+				jsonResponse := `{"id": "video1", "title": "Test Video 1", "channel_id": "UC123456789", "webpage_url": "https://www.youtube.com/watch?v=video1", "duration": 300.0}
+{"id": "video2", "title": "Test Video 2", "channel_id": "UC123456789", "webpage_url": "https://www.youtube.com/watch?v=video2", "duration": 150.0}`
 				m.On("Run", mock.Anything, "yt-dlp", mock.AnythingOfType("[]string")).
 					Return([]byte(jsonResponse), nil)
 			},
@@ -37,14 +37,14 @@ func TestYouTubeService_FetchChannelVideos(t *testing.T) {
 					ChannelID: "UC123456789",
 					Title:     "Test Video 1",
 					URL:       "https://www.youtube.com/watch?v=video1",
-					Duration:  300,
+					Duration:  300.0,
 				},
 				{
 					ID:        "video2",
 					ChannelID: "UC123456789",
 					Title:     "Test Video 2",
 					URL:       "https://www.youtube.com/watch?v=video2",
-					Duration:  150,
+					Duration:  150.0,
 				},
 			},
 			wantError: false,
@@ -65,7 +65,33 @@ func TestYouTubeService_FetchChannelVideos(t *testing.T) {
 					ChannelID: "UC123456789",
 					Title:     "Test Video",
 					URL:       "https://www.youtube.com/watch?v=video1",
-					Duration:  214, // int conversion from 214.0
+					Duration:  214.0, // Keep as float64
+				},
+			},
+			wantError: false,
+		},
+		{
+			name:       "channel URL without /videos path gets auto-appended and no limit",
+			channelURL: "https://www.youtube.com/channel/UCuAXFkgsw1L7xaCfnd5JJOw",
+			limit:      0, // No limit - fetch all videos
+			mockSetup: func(m *mockCmdRunner) {
+				// Expect the URL to have /videos automatically appended and no --playlist-end
+				expectedArgs := []string{
+					"--dump-json",
+					"--flat-playlist",
+					"https://www.youtube.com/channel/UCuAXFkgsw1L7xaCfnd5JJOw/videos",
+				}
+				jsonResponse := `{"id": "video1", "title": "Test Video", "channel_id": "UCuAXFkgsw1L7xaCfnd5JJOw", "webpage_url": "https://www.youtube.com/watch?v=video1", "duration": 214.0}`
+				m.On("Run", mock.Anything, "yt-dlp", expectedArgs).
+					Return([]byte(jsonResponse), nil)
+			},
+			wantVideos: []*model.Video{
+				{
+					ID:        "video1",
+					ChannelID: "UCuAXFkgsw1L7xaCfnd5JJOw",
+					Title:     "Test Video",
+					URL:       "https://www.youtube.com/watch?v=video1",
+					Duration:  214.0,
 				},
 			},
 			wantError: false,
@@ -80,13 +106,30 @@ func TestYouTubeService_FetchChannelVideos(t *testing.T) {
 			errorContains: "channel URL is required",
 		},
 		{
-			name:          "invalid limit",
-			channelURL:    "https://www.youtube.com/@test",
-			limit:         0,
-			mockSetup:     func(m *mockCmdRunner) {},
-			wantVideos:    nil,
-			wantError:     true,
-			errorContains: "limit must be greater than 0",
+			name:       "zero limit means fetch all videos",
+			channelURL: "https://www.youtube.com/@test",
+			limit:      0, // Should fetch all videos without limit
+			mockSetup: func(m *mockCmdRunner) {
+				// Expect no --playlist-end argument when limit is 0
+				expectedArgs := []string{
+					"--dump-json",
+					"--flat-playlist", 
+					"https://www.youtube.com/@test/videos", // /videos will be auto-appended
+				}
+				jsonResponse := `{"id": "video1", "title": "Test Video", "channel_id": "UC123456789", "webpage_url": "https://www.youtube.com/watch?v=video1", "duration": 214.0}`
+				m.On("Run", mock.Anything, "yt-dlp", expectedArgs).
+					Return([]byte(jsonResponse), nil)
+			},
+			wantVideos: []*model.Video{
+				{
+					ID:        "video1",
+					ChannelID: "UC123456789",
+					Title:     "Test Video",
+					URL:       "https://www.youtube.com/watch?v=video1",
+					Duration:  214.0,
+				},
+			},
+			wantError: false,
 		},
 		{
 			name:       "yt-dlp command fails",
