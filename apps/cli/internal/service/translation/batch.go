@@ -3,6 +3,7 @@ package translation
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -116,18 +117,21 @@ func (bp *batchProcessor) finalizeBatch(batch *SegmentBatch) {
 // TranslateBatchWithFallback implements the three-stage fallback strategy
 func (bp *batchProcessor) TranslateBatchWithFallback(batch SegmentBatch, plamoService PlamoService, ctx context.Context, sourceLang, targetLang string) ([]*TranslationSegment, error) {
 	// Stage 1: Try with "__" separator
+	fmt.Println("First Try: Translate with __ separator")
 	result, err := bp.tryTranslateWithSeparator(batch.Segments, "__", plamoService, ctx, sourceLang, targetLang)
 	if err == nil {
 		return result, nil
 	}
 
 	// Stage 2: Try with "<<<SEP>>>" separator
+	fmt.Println("Second Try: Translate with <<<SEP>>> separator")
 	result, err = bp.tryTranslateWithSeparator(batch.Segments, "<<<SEP>>>", plamoService, ctx, sourceLang, targetLang)
 	if err == nil {
 		return result, nil
 	}
 
 	// Stage 3: Individual translation fallback
+	fmt.Println("Third Try: Translate with individual translation fallback")
 	return bp.translateIndividually(batch.Segments, plamoService, ctx, sourceLang, targetLang)
 }
 
