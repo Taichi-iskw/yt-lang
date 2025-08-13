@@ -3,6 +3,7 @@ package translation
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Taichi-iskw/yt-lang/internal/service/translation"
 	"github.com/spf13/cobra"
@@ -32,8 +33,28 @@ func NewDeleteCommand(service translation.TranslationService) *cobra.Command {
 				}
 			}
 
+			// Use provided service if available (for testing), otherwise create real service
+			var translationService translation.TranslationService
+			var cleanup func()
+			
+			if service != nil {
+				translationService = service
+			} else {
+				// Create service using factory
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+				
+				factory := NewServiceFactory()
+				var err error
+				translationService, cleanup, err = factory.CreateService(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to create translation service: %w", err)
+				}
+				defer cleanup()
+			}
+
 			ctx := context.Background()
-			err := service.DeleteTranslation(ctx, translationID)
+			err := translationService.DeleteTranslation(ctx, translationID)
 			if err != nil {
 				return fmt.Errorf("failed to delete translation: %w", err)
 			}

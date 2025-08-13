@@ -5,11 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Taichi-iskw/yt-lang/internal/config"
-	"github.com/Taichi-iskw/yt-lang/internal/model"
-	"github.com/Taichi-iskw/yt-lang/internal/repository/transcription"
-	"github.com/Taichi-iskw/yt-lang/internal/repository/translation"
-	"github.com/Taichi-iskw/yt-lang/internal/service/common"
 	translationSvc "github.com/Taichi-iskw/yt-lang/internal/service/translation"
 	"github.com/spf13/cobra"
 )
@@ -34,60 +29,29 @@ func NewCreateCommand(service translationSvc.TranslationService) *cobra.Command 
 
 			// Use provided service if available (for testing), otherwise create real service
 			var translationService translationSvc.TranslationService
+			var cleanup func()
+			
 			if service != nil {
 				translationService = service
 			} else {
-				// Create real service with database connections
-				// Create context with timeout
+				// Create service using factory with PLaMo server support
 				ctx, cancel := context.WithTimeout(context.Background(), 360*time.Minute)
 				defer cancel()
-
-				// Load database configuration
-				cfg, err := config.NewConfig()
-				if err != nil {
-					return fmt.Errorf("failed to load configuration: %w", err)
-				}
-
-				// Create database connection
-				dbPool, err := config.NewDatabasePool(ctx, cfg)
-				if err != nil {
-					return fmt.Errorf("failed to connect to database: %w", err)
-				}
-				defer dbPool.Close()
-
-				// Create repositories
-				transcriptionRepo := transcription.NewRepository(dbPool)
-				segmentRepo := transcription.NewSegmentRepository(dbPool)
-				translationRepo := translation.NewRepository(dbPool)
-
-				// Create services
-				cmdRunner := common.NewCmdRunner()
-				plamoService := translationSvc.NewPlamoServerService(cmdRunner) // Use server mode for better performance
-				batchProcessor := translationSvc.NewBatchProcessor()
-
-				// Create translation service with real repositories
-				translationService = translationSvc.NewTranslationService(
-					&transcriptionRepoWrapper{
-						transcriptionRepo: transcriptionRepo,
-						segmentRepo:       segmentRepo,
-					},
-					translationRepo,
-					plamoService,
-					batchProcessor,
-				)
-
-				// Always start PLaMo server for better performance
+				
+				factory := NewServiceFactory()
+				var err error
+				
+				// Use the version that starts PLaMo server for better performance
 				cmd.Println("Starting PLaMo server...")
-				if err := plamoService.StartServer(ctx); err != nil {
-					return fmt.Errorf("failed to start PLaMo server: %w", err)
+				translationService, cleanup, err = factory.CreateServiceWithPlamoServer(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to create translation service: %w", err)
 				}
-
-				// Ensure server is stopped when command completes
+				
+				// Ensure cleanup is called when command completes
 				defer func() {
 					cmd.Println("Stopping PLaMo server...")
-					if err := plamoService.StopServer(); err != nil {
-						cmd.Printf("Warning: failed to stop PLaMo server: %v\n", err)
-					}
+					cleanup()
 				}()
 			}
 
@@ -112,20 +76,4 @@ func NewCreateCommand(service translationSvc.TranslationService) *cobra.Command 
 	cmd.Flags().Bool("dry-run", false, "Perform a dry run without saving to database")
 
 	return cmd
-}
-
-// transcriptionRepoWrapper wraps transcription and segment repositories to implement TranscriptionRepository interface
-type transcriptionRepoWrapper struct {
-	transcriptionRepo transcription.Repository
-	segmentRepo       transcription.SegmentRepository
-}
-
-// GetSegments implements TranscriptionRepository interface
-func (w *transcriptionRepoWrapper) GetSegments(ctx context.Context, transcriptionID string) ([]*model.TranscriptionSegment, error) {
-	return w.segmentRepo.GetByTranscriptionID(ctx, transcriptionID)
-}
-
-// Get implements TranscriptionRepository interface
-func (w *transcriptionRepoWrapper) Get(ctx context.Context, id string) (*model.Transcription, error) {
-	return w.transcriptionRepo.GetByID(ctx, id)
 }

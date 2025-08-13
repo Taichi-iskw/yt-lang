@@ -3,6 +3,7 @@ package translation
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Taichi-iskw/yt-lang/internal/service/translation"
 	"github.com/spf13/cobra"
@@ -21,8 +22,28 @@ func NewListCommand(service translation.TranslationService) *cobra.Command {
 			limit, _ := cmd.Flags().GetInt("limit")
 			offset, _ := cmd.Flags().GetInt("offset")
 
+			// Use provided service if available (for testing), otherwise create real service
+			var translationService translation.TranslationService
+			var cleanup func()
+			
+			if service != nil {
+				translationService = service
+			} else {
+				// Create service using factory
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+				
+				factory := NewServiceFactory()
+				var err error
+				translationService, cleanup, err = factory.CreateService(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to create translation service: %w", err)
+				}
+				defer cleanup()
+			}
+
 			ctx := context.Background()
-			translations, err := service.ListTranslations(ctx, transcriptionID, limit, offset)
+			translations, err := translationService.ListTranslations(ctx, transcriptionID, limit, offset)
 			if err != nil {
 				return fmt.Errorf("failed to list translations: %w", err)
 			}
