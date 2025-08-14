@@ -35,7 +35,7 @@ func NewCreateCommand(service translationSvc.TranslationService) *cobra.Command 
 				translationService = service
 			} else {
 				// Create service using factory with PLaMo server support
-				ctx, cancel := context.WithTimeout(context.Background(), 360*time.Minute)
+				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 				defer cancel()
 				
 				factory := NewServiceFactory()
@@ -55,8 +55,8 @@ func NewCreateCommand(service translationSvc.TranslationService) *cobra.Command 
 				}()
 			}
 
-			// Create context with timeout for translation
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			// Create context with timeout for translation (12 hours for large texts)
+			ctx, cancel := context.WithTimeout(context.Background(), 12*time.Hour)
 			defer cancel()
 
 			// Create translation

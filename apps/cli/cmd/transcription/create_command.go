@@ -29,8 +29,8 @@ func NewCreateCmd() *cobra.Command {
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
 			format, _ := cmd.Flags().GetString("format")
 
-			// Create service with timeout context
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+			// Create service with timeout context (12 hours for long videos)
+			ctx, cancel := context.WithTimeout(context.Background(), 12*time.Hour)
 			defer cancel()
 
 			if dryRun {
