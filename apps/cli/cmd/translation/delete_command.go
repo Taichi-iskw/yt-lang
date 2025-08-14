@@ -36,14 +36,14 @@ func NewDeleteCommand(service translation.TranslationService) *cobra.Command {
 			// Use provided service if available (for testing), otherwise create real service
 			var translationService translation.TranslationService
 			var cleanup func()
-			
+
 			if service != nil {
 				translationService = service
 			} else {
 				// Create service using factory
 				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 				defer cancel()
-				
+
 				factory := NewServiceFactory()
 				var err error
 				translationService, cleanup, err = factory.CreateService(ctx)

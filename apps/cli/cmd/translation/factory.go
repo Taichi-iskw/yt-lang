@@ -71,7 +71,7 @@ func (f *ServiceFactory) CreateServiceWithPlamoServer(ctx context.Context) (tran
 
 	// Get the PLaMo service through the interface
 	plamoService := service.GetPlamoService()
-	
+
 	// Type assert to PlamoServerService if it supports server mode
 	if serverService, ok := plamoService.(*translation.PlamoServerService); ok {
 		// Start PLaMo server

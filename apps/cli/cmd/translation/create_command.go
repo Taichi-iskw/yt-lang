@@ -30,24 +30,24 @@ func NewCreateCommand(service translationSvc.TranslationService) *cobra.Command 
 			// Use provided service if available (for testing), otherwise create real service
 			var translationService translationSvc.TranslationService
 			var cleanup func()
-			
+
 			if service != nil {
 				translationService = service
 			} else {
 				// Create service using factory with PLaMo server support
 				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 				defer cancel()
-				
+
 				factory := NewServiceFactory()
 				var err error
-				
+
 				// Use the version that starts PLaMo server for better performance
 				cmd.Println("Starting PLaMo server...")
 				translationService, cleanup, err = factory.CreateServiceWithPlamoServer(ctx)
 				if err != nil {
 					return fmt.Errorf("failed to create translation service: %w", err)
 				}
-				
+
 				// Ensure cleanup is called when command completes
 				defer func() {
 					cmd.Println("Stopping PLaMo server...")
