@@ -1,4 +1,10 @@
+# cli build
+ytlang 
 
 # claude
 .claude/
 CLAUDE.md
+
+# .vscode
+.vscode/
+!.vscode/settings.json
