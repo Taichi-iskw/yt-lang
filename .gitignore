@@ -8,3 +8,6 @@ CLAUDE.md
 # .vscode
 .vscode/
 !.vscode/settings.json
+
+# supabase
+.env.supabase
